@@ -17,7 +17,7 @@ class Location < RetirableRecord
   end
 
   def as_json(options = {})
-    super(options.merge(include: { parent: {} }, methods: %i[district]))
+    super(options.merge(include: { parent: {} }, methods: %i[district site_prefix]))
   end
 
   def self.current_health_center
@@ -25,6 +25,10 @@ class Location < RetirableRecord
     raise 'Global property current_health_center not set' unless property
 
     Location.find(property.property_value)
+  end
+
+  def site_prefix
+    GlobalProperty.find_by_property('site_prefix')&.property_value&.strip
   end
 
   def district
