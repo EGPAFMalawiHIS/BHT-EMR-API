@@ -26,8 +26,8 @@ module Api
       end
 
       def with_nids
-        stats = service.with_nids
-        render json: stats
+        start_date, end_date = params.require %i[start_date end_date]
+        render json: service.with_nids(start_date, end_date)
       end
 
       def malaria_report
