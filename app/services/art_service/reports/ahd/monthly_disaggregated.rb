@@ -17,6 +17,19 @@ module ArtService
           @num = 0
         end
 
+        def age_groups
+          [
+            'Unknown',
+            '<1 year',
+            '1-4 years', '5-9 years',
+            '10-14 years', '15-19 years',
+            '20-24 years',
+            '25-29 years', '30-34 years',
+            '35-39 years', '40-44 years',
+            '45-49 years', '50 plus'
+          ].freeze
+        end
+
         def find_report
           rtt_patients = find_rtt
           queries = [
@@ -102,7 +115,7 @@ module ArtService
             tests = labs.select { |k, _v| values.include?(k) }
 
             to_report(patient, 'tested_tb_positive', key.to_s)\
-              if tests.all? { |_, result| result.split(',').last == 'Positive' }
+              if tests.all? { |_, result| result.split('~').last == 'Positive' }
           end
 
           # TODO: calculate for TB clinical assessment
@@ -113,7 +126,7 @@ module ArtService
           categories.each do |c|
             report[indicator.to_s][c.to_s] ||= \
               %w[M F].each_with_object({}) do |gender, g|
-                g[gender] = pepfar_age_groups.each_with_object({}) do |group, g|
+                g[gender] = age_groups.each_with_object({}) do |group, g|
                   g[group] = []
                 end
               end
@@ -141,12 +154,25 @@ module ArtService
         end
 
         def to_report(patient, indicator, category = nil)
+          fifty_plus_age_groups = ['50-54 years',
+            '55-59 years', '60-64 years',
+            '65-69 years', '70-74 years',
+            '75-79 years', '80-84 years',
+            '85-89 years',
+            '90 plus years'].freeze
+          
           patient_id = patient['patient_id']
           group = patient['age_group']
           gender = patient['gender']
-          return report[indicator.to_s][category.to_s][gender][group] << patient_id if category.present?
+          if category.present?
+            report[indicator.to_s][category.to_s][gender][group] << patient_id 
+            report[indicator.to_s][category.to_s][gender]['50 plus'] << patient_id\
+              if fifty_plus_age_groups.include?(group)
+            return
+          end
 
           report[indicator]['total'][gender][group] << patient_id
+          report[indicator]['total'][gender][group] << patient_id if fifty_plus_age_groups.include?(group)
         end
 
         def map_screening_data(row, rtt_patients)

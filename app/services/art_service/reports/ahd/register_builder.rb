@@ -139,13 +139,16 @@ module ArtService
             select('orders.test_results')
               .joins <<~SQL
                 LEFT JOIN (
-                    SELECT lab.patient_id,
-                            GROUP_CONCAT(
-                                    DISTINCT JSON_OBJECT(
-                                    tt.name,
-                                    CONCAT(result.value_modifier, ",",
-                                            COALESCE(result.value_numeric, result.value_text, result.value_coded)
-                                    ))) AS test_results
+                    SELECT DISTINCT lab.patient_id,
+                      GROUP_CONCAT(
+                        CONCAT(
+                          '"', tt.name, '":',
+                          '"', CONCAT(result.value_modifier, "~",
+                                COALESCE(result.value_numeric, result.value_text,
+                                        result.value_coded)),
+                          '"'
+                        )
+                      ) AS test_results
                       from orders
                               INNER JOIN encounter lab ON lab.patient_id = orders.patient_id
                           AND lab.encounter_datetime >= #{start_date}

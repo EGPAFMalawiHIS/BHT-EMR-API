@@ -190,7 +190,7 @@ module ArtService
           }
           indicator = 'symptom_screening'
           build_indicators(indicator, symptom_map.keys)
-          symptoms = symptoms.split(',')
+          symptoms = symptoms.split('~')
 
           symptom_map.each do |key, concept|
             report[indicator][key] << patient_id if concept.in?(symptoms)
@@ -247,7 +247,7 @@ module ArtService
           return unless results.keys.include?(test_name)
 
           test = results[test_name]
-          modifier, value = test.split(',')
+          modifier, value = test.split('~')
 
           result = block_given? ? yield(modifier, value) : value.downcase
 

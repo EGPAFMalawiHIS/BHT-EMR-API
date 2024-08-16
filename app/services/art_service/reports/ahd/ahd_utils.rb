@@ -90,25 +90,31 @@ module ArtService
         def cd4_count_criteria_met?(cd4_count)
           return false unless cd4_count
 
-          measure, result = cd4_count.split(',')
+          measure, result = cd4_count.split('~')
           measure == '<' && result.to_f <= 200
         end
 
         def hiv_viral_load_criteria_met?(hiv_viral_load)
           return false unless hiv_viral_load
 
-          measure, result = hiv_viral_load.split(',')
+          measure, result = hiv_viral_load.split('~')
           result.to_f > 1000 || (measure == '=' && result == 'LDL')
         end
 
         def patient_labs(results)
-          Hash[JSON.parse("[#{results}]").flat_map(&:to_a)]
+          JSON.parse("{#{results}}")
         end
 
         def find_rtt
           ArtService::Reports::ClinicTxRtt\
             .new(start_date: start_date.to_date, end_date: end_date.to_date)\
             .find_rtt_patients
+        end
+
+        def missed_appointment_report
+          ArtService::Reports::AppointmentsReport\
+            .new(start_date: start_date.to_date, end_date: end_date.to_date)\
+            .missed_appointments
         end
 
         def builder
