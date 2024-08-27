@@ -44,9 +44,9 @@ module CxcaService
 
       when 'CC TYPE OF TREATMENT'
         REPORT_NAMES[name].new(start_date:,
-                               end_date:).treatment_resport                      
+                               end_date:).treatment_resport
       else
-        REPORT_NAMES[name].new(start_date:, end_date:,**kwargs).data
+        REPORT_NAMES[name].new(start_date:, end_date:, **kwargs).data
       end
     end
 

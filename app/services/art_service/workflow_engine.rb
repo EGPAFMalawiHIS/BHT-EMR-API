@@ -35,7 +35,11 @@ module ArtService
 
         return htn_transform(encounter_type) if valid_state?(state)
       end
-
+      nil
+    rescue StandardError => e
+      LOGGER.error "Error while loading next encounter: #{e}"
+      # stack trace
+      LOGGER.error e.backtrace.join("\n")
       nil
     end
 
@@ -51,6 +55,7 @@ module ArtService
     VITALS = 'VITALS'
     SYMPTOM_SCREENING = 'SYMPTOM SCREENING'
     AHD_SCREENING = 'AHD SCREENING'
+    AHD_LAB_RESULTS = 'AHD LAB RESULTS'
     HIV_STAGING = 'HIV STAGING'
     HIV_CLINIC_CONSULTATION = 'HIV CLINIC CONSULTATION'
     ART_ADHERENCE = 'ART ADHERENCE'
@@ -68,7 +73,8 @@ module ArtService
       VITALS => SYMPTOM_SCREENING,
       SYMPTOM_SCREENING => HIV_STAGING,
       HIV_STAGING => AHD_SCREENING,
-      AHD_SCREENING => HIV_CLINIC_CONSULTATION,
+      AHD_SCREENING => AHD_LAB_RESULTS,
+      AHD_LAB_RESULTS => HIV_CLINIC_CONSULTATION,
       HIV_CLINIC_CONSULTATION => ART_ADHERENCE,
       ART_ADHERENCE => HIV_CLINIC_CONSULTATION_CLINICIAN,
       HIV_CLINIC_CONSULTATION_CLINICIAN => TREATMENT,
@@ -91,7 +97,11 @@ module ArtService
       SYMPTOM_SCREENING => %i[patient_is_alive? patient_not_on_fast_track?
                               patient_has_not_completed_fast_track_visit?
                               patient_not_coming_for_drug_refill?],
+      SYMPTOM_SCREENING => %i[patient_is_alive? patient_not_on_fast_track?
+                              patient_has_not_completed_fast_track_visit?
+                              patient_not_coming_for_drug_refill?],
       HIV_STAGING => %i[patient_is_alive?
+                        patient_not_already_staged_or_has_symptoms_screening?
                         patient_not_already_staged_or_has_symptoms_screening?
                         patient_has_not_completed_fast_track_visit?
                         patient_not_coming_for_drug_refill?],
@@ -99,6 +109,7 @@ module ArtService
                           patient_is_alive? patient_not_on_fast_track?
                           patient_not_coming_for_drug_refill?
                           patient_has_not_completed_fast_track_visit?],
+      AHD_LAB_RESULTS => %i[patient_is_alive? patient_not_on_fast_track? patient_not_coming_for_drug_refill? patient_has_not_completed_fast_track_visit? patient_results_not_available?],
       HIV_CLINIC_CONSULTATION => %i[patient_not_on_fast_track? patient_is_alive?
                                     patient_has_not_completed_fast_track_visit?],
       ART_ADHERENCE => %i[patient_received_art? patient_is_alive?
@@ -151,6 +162,8 @@ module ArtService
           SYMPTOM_SCREENING
         when /AHD screening/i
           AHD_SCREENING
+        when /AHD lab results/i
+          AHD_LAB_RESULTS
         else
           Rails.logger.warn "Invalid ART activity in user properties: #{activity}"
         end
@@ -185,7 +198,7 @@ module ArtService
     end
 
     def art_activity_enabled?(state)
-      return true if state == FAST_TRACK
+      return true if [FAST_TRACK, AHD_LAB_RESULTS].include?(state)
 
       @activities.include?(state)
     end
@@ -320,13 +333,14 @@ module ArtService
 
     def patient_has_symptoms_screening?
       encounter_type = EncounterType.find_by(name: SYMPTOM_SCREENING)
-      Observation.joins(:encounter)\
-                 .where(person: @patient.person)
-                 .where(encounter: { program_id: @program.program_id, encounter_type: })\
-                 .where('concept_id in (SELECT value_coded from obs WHERE concept_id = ?)', concept('AHD Symptom').concept_id)
-                 .where(value_coded: concept('Yes'))
-                 .where('obs_datetime BETWEEN ? AND ?', *TimeUtils.day_bounds(@date))\
-                 .present?
+      patient_screened = Encounter.where(
+        'patient_id = ? AND program_id = ? AND encounter_type = ? AND encounter_datetime < ?',
+        @patient.patient_id, @program.program_id, encounter_type.encounter_type_id,
+        @date.to_date + 1.days
+      )
+      patient_screened.observations.any? do |observation|
+        observation.value_coded == concept('Yes').concept_id
+      end
     end
 
     # Checks if patient has not undergone staging before
@@ -433,6 +447,29 @@ module ArtService
 
     def patient_is_a_minor?
       @patient.age(today: @date) < MINOR_AGE_LIMIT
+    end
+
+    def patient_results_not_available?
+      concept_id = ConceptName.find_by_name('Results available today').concept_id
+      obs = Observation.where(concept_id:, person_id: @patient.id)\
+                       .where('obs_datetime BETWEEN ? AND ?', *TimeUtils.day_bounds(@date))\
+                       .where(value_coded: ConceptName.find_by_name('yes').concept_id)\
+                       .exists?
+      return false unless obs
+
+      ## Now we need to check if all the AHD orders have results
+      # Define the subquery for test_type.value_coded
+      subquery = ConceptName.where(name: ['CSF Crag', 'Biopsy', 'Serum Crag', 'Urine Lam', 'GeneXpert', 'Culture & Sensitivity', 'TB Microscopic Exam', 'FASH']).select(:concept_id)
+
+      # Main query
+      orders = Order.joins("INNER JOIN obs test_type ON test_type.order_id = orders.order_id AND test_type.concept_id = 9737 AND test_type.value_coded IN (#{subquery.to_sql}) AND test_type.voided = 0")
+                    .joins('LEFT JOIN obs test_result ON test_result.order_id = orders.order_id AND test_result.voided = 0 AND test_result.concept_id = 7363')
+                    .where(order_type_id: 4, patient_id: @patient.id)
+                    .where('orders.start_date BETWEEN ? AND ?', *TimeUtils.day_bounds(@date))
+                    .group('orders.order_id')
+                    .select('orders.start_date as visit_date, test_result.obs_datetime as entered_results')
+                    .having('entered_results IS NULL')
+      !orders.map { |order| order.entered_results.blank? }.count.zero?
     end
 
     def seen_by_clinician?

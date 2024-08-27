@@ -106,7 +106,7 @@ module ArtService
 
       def find_saved_report
         @report = Report.where(type: @type, name: "#{@name} #{@occupation}",
-                              start_date: @start_date, end_date: @end_date)
+                               start_date: @start_date, end_date: @end_date)
         @report&.map { |r| r['id'] } || []
       end
 

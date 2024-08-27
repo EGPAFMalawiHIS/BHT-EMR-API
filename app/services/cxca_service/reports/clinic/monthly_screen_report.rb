@@ -17,8 +17,8 @@ module CxcaService
         }.freeze
 
         CxCa_TX_OUTCOMES = {
-           positive: ['via positive', 'hpv positive', 'pap smear abnormal', 'visible lesion'],
-           negative: ['via negative', 'hpv negative', 'pap smear normal', 'no visible lesion', 'other gynae'],
+          positive: ['via positive', 'hpv positive', 'pap smear abnormal', 'visible lesion'],
+          negative: ['via negative', 'hpv negative', 'pap smear normal', 'no visible lesion', 'other gynae'],
           suspected: ['suspect cancer']
         }.freeze
 

@@ -104,7 +104,7 @@ module ArtService
           tpt == '6H' ? tpt_init_date + 6.months : tpt_init_date + 3.months
         end
 
-        def determine_eligibility(tpt, diff_in_months, art_start_date, arv_drug_runout_date)
+        def determine_eligibility(tpt, diff_in_months, art_start_date, _arv_drug_runout_date)
           three_hp_eligible = false
           six_h_eligible = false
           tpt_init_date = @tpt_status[:tpt_init_date]
@@ -117,9 +117,9 @@ module ArtService
             # check if they have been on ART for less than 3 months, they are eligible
             # if they have been on ART continuosly for more than 3 months, they are not eligible
             three_hp_eligible = true if diff_in_months <= 1
-            if diff_in_months > 1 &&  difference_in_months(end_date.to_date, art_start_date.to_date) < 3
+            if diff_in_months > 1 && difference_in_months(end_date.to_date, art_start_date.to_date) < 3
               #  Patient defaulted for ART and TPT and was on ART for less than 3 months: patient TPT status is reset
-              
+
               three_hp_eligible = true
               six_h_eligible = false
               tpt_end_date = nil

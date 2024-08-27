@@ -22,7 +22,7 @@ module CxcaService
           suspected: ['suspect cancer']
         }.freeze
 
-        def initialize(start_date:, end_date:,**kwargs)
+        def initialize(start_date:, end_date:, **kwargs)
           @start_date = start_date.to_date.beginning_of_day.strftime('%Y-%m-%d %H:%M:%S')
           @end_date = end_date.to_date.end_of_day.strftime('%Y-%m-%d %H:%M:%S')
           @screening_method = kwargs[:screening_method].downcase
@@ -40,7 +40,6 @@ module CxcaService
         private
 
         def init_report
-
           query = fetch_query.to_a
           pepfar_age_groups.collect do |age_group|
             row = {}
@@ -51,11 +50,11 @@ module CxcaService
               end
               row[name] = {}
               CxCa_TX_OUTCOMES.each do |(outcome, outcomes)|
-                row[name][outcome] = screened.select do |s|  
-                  if @screening_method == "all" || s['treatment']&.strip&.downcase&.include?(@screening_method)
-                    s['treatment']&.strip&.downcase&.in?(outcomes)
-                  end
-                  end.map { |t| t['person_id'] }.uniq
+                row[name][outcome] = screened.select do |s|
+                                       if @screening_method == 'all' || s['treatment']&.strip&.downcase&.include?(@screening_method)
+                                         s['treatment']&.strip&.downcase&.in?(outcomes)
+                                       end
+                                     end.map { |t| t['person_id'] }.uniq
               end
             end
             row

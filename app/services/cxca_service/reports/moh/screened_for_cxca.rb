@@ -159,7 +159,7 @@ module CxcaService
 
         def initialize_screening_results_group
           group = {}
-          SCREENING_RESULTS.each do |_key, result|
+          SCREENING_RESULTS.each_value do |result|
             group["Number of clients with #{result}"] = []
           end
           group
@@ -278,9 +278,9 @@ module CxcaService
           if @report[:referral_reasons].keys.include?(referral_reason&.to_sym)
             @report[:referral_reasons][referral_reason.to_sym] << person_id
           elsif referral_reason == 'Suspect cancer'
-            @report[:referral_reasons]['Suspect Cancer'&.to_sym] << person_id
+            @report[:referral_reasons]['Suspect Cancer'.to_sym] << person_id
           else
-            @report[:referral_reasons]['Other gynae'&.to_sym] << person_id
+            @report[:referral_reasons]['Other gynae'.to_sym] << person_id
           end
         end
         # rubocop:enable Metrics/AbcSize
