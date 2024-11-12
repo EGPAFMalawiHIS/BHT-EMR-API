@@ -24,6 +24,9 @@ gem 'browser'
 # Use Active Model has_secure_password [https://guides.rubyonrails.org/active_model_basics.html#securepassword]
 gem 'bcrypt'
 
+# QR Code generation
+gem 'rqrcode'
+
 # Use ActiveStorage variant
 # gem 'mini_magick', '~> 4.8'
 
