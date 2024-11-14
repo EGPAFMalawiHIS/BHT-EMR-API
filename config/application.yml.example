@@ -16,9 +16,11 @@ lims_app_name: 'bht_emr_api'
 #lims facility_code
 development:
  facility_code: KCH
+ qr_code_key: his-emr-api
 
 production:
  facility_code: KCH
+ qr_code_key: his-emr-api
 
 # Configuration for Pacs
 ftp_host:

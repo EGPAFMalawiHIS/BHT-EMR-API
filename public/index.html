@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>BHT EMR API</title>
+    <title>HIS EMR API</title>
     <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/monokai-sublime.min.css" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
@@ -14,7 +14,8 @@
         });
         hljs.initHighlightingOnLoad();
     </script>
-    <style>body {
+    <style>
+body {
     position: relative;
 }
 
@@ -137,243 +138,224 @@ pre code {
 }
 
 #page-content-wrapper {
-    width: 100%;
+    width: 90%;
     position: absolute;
     padding: 15px 15px 15px 250px;
+}
+
+#page-qr-code {
+    position: fixed;
+    top: 0;
+    right: 0;
+    margin: 10px;
 }
 </style>
 </head>
 <body data-spy="scroll" data-target=".scrollspy">
 <div id="sidebar-wrapper">
     <div class="scrollspy">
-    <ul id="main-menu" data-spy="affix" class="nav">
-        <li>
-            <a href="#doc-general-notes">General notes</a>
-        </li>
-        
-        <li>
-            <a href="#doc-api-detail">API detail</a>
-        </li>
-        
-        
-        
-        <li>
-            <a href="#folder-auth">Auth</a>
-            <ul>
-                
-                <li>
-                    <a href="#request-auth-log-in">Log in</a>
-                </li>
-                
-            </ul>
-        </li>
-        
-        
-        <li>
-            <a href="#folder-search">Search</a>
-            <ul>
-                
-                <li>
-                    <a href="#request-search-find-duplicate-identifiers-of-a-given-type">Find duplicate identifiers of a given type</a>
-                </li>
-                
-                <li>
-                    <a href="#request-search-find-patients-by-identifier">Find patients by identifier</a>
-                </li>
-                
-            </ul>
-        </li>
-        
-        
-        <li>
-            <a href="#folder-registry-management">Registry Management</a>
-            <ul>
-                
-                <li>
-                    <a href="#request-registry-management-create-register">Create Register</a>
-                </li>
-                
-                <li>
-                    <a href="#request-registry-management-binding-an-encounter-to-a-register">Binding an encounter to a register</a>
-                </li>
-                
-            </ul>
-        </li>
-        
-        
-        <li>
-            <a href="#folder-programs">Programs</a>
-            <ul>
-                
-                <li>
-                    <a href="#request-programs-create-program">Create program</a>
-                </li>
-                
-                <li>
-                    <a href="#request-programs-retrieve-programs">Retrieve programs</a>
-                </li>
-                
-                <li>
-                    <a href="#request-programs-retrieve-program-workflows-and-states">Retrieve program workflows and states</a>
-                </li>
-                
-            </ul>
-        </li>
-        
-        
-        <li>
-            <a href="#folder-concepts">Concepts</a>
-            <ul>
-                
-                <li>
-                    <a href="#request-concepts-api-v1-concepts-retrieve-concepts">/api/v1/concepts (Retrieve concepts)</a>
-                </li>
-                
-            </ul>
-        </li>
-        
-        
-        <li>
-            <a href="#folder-drugs">Drugs</a>
-            <ul>
-                
-                <li>
-                    <a href="#request-drugs-api-v1-drugs-retrieve-drugs">/api/v1/drugs (Retrieve drugs)</a>
-                </li>
-                
-                <li>
-                    <a href="#request-drugs-retrieve-search-for-drugs">Retrieve/search  for drugs</a>
-                </li>
-                
-            </ul>
-        </li>
-        
-        
-        <li>
-            <a href="#folder-encounters">Encounters</a>
-            <ul>
-                
-                <li>
-                    <a href="#request-encounters-creating-encounters">Creating encounters</a>
-                </li>
-                
-                <li>
-                    <a href="#request-encounters-retrieve-encounters">Retrieve encounters</a>
-                </li>
-                
-                <li>
-                    <a href="#request-encounters-retrieve-encounter-types">Retrieve encounter types</a>
-                </li>
-                
-                <li>
-                    <a href="#request-encounters-searching-encounter-types">Searching encounter types</a>
-                </li>
-                
-            </ul>
-        </li>
-        
-        
-        <li>
-            <a href="#folder-people">People</a>
-            <ul>
-                
-                <li>
-                    <a href="#request-people-creating-a-person">Creating a Person</a>
-                </li>
-                
-                <li>
-                    <a href="#request-people-retrieve-registered-people">Retrieve registered people</a>
-                </li>
-                
-                <li>
-                    <a href="#request-people-retrieve-specific-person-names">Retrieve specific person names</a>
-                </li>
-                
-                <li>
-                    <a href="#request-people-people-search">People search</a>
-                </li>
-                
-                <li>
-                    <a href="#request-people-retrieve-relationship-types">Retrieve relationship types</a>
-                </li>
-                
-            </ul>
-        </li>
-        
-        
-        <li>
-            <a href="#folder-users">Users</a>
-            <ul>
-                
-                <li>
-                    <a href="#request-users-creating-users">Creating users</a>
-                </li>
-                
-                <li>
-                    <a href="#request-users-retrieving-all-users">Retrieving all users</a>
-                </li>
-                
-                <li>
-                    <a href="#request-users-retrieving-all-roles">Retrieving all roles</a>
-                </li>
-                
-            </ul>
-        </li>
-        
-        
-        <li>
-            <a href="#folder-observations">Observations</a>
-            <ul>
-                
-                <li>
-                    <a href="#request-observations-creating-new-observations">Creating new observations</a>
-                </li>
-                
-                <li>
-                    <a href="#request-observations-retrieve-observations">Retrieve observations</a>
-                </li>
-                
-                <li>
-                    <a href="#request-observations-retrieve-appointments">Retrieve appointments</a>
-                </li>
-                
-            </ul>
-        </li>
-        
-        
-        <li>
-            <a href="#folder-drug-orders-and-dispensations">Drug orders and Dispensations</a>
-            <ul>
-                
-                <li>
-                    <a href="#request-drug-orders-and-dispensations-creating-drug-orders">Creating drug orders</a>
-                </li>
-                
-                <li>
-                    <a href="#request-drug-orders-and-dispensations-create-dispensations">Create dispensations</a>
-                </li>
-                
-                <li>
-                    <a href="#request-drug-orders-and-dispensations-retrieve-dispensations">Retrieve dispensations</a>
-                </li>
-                
-            </ul>
-        </li>
-        
-    </ul>
-</div>
-
+        <ul id="main-menu" data-spy="affix" class="nav">
+            <li>
+                <a href="#doc-general-notes">General notes</a>
+            </li>
+            <li>
+                <a href="#doc-api-detail">API detail</a>
+            </li>
+            <li>
+                <a href="#folder-auth">Auth</a>
+                <ul>
+                    
+                    <li>
+                        <a href="#request-auth-log-in">Log in</a>
+                    </li>
+                    
+                </ul>
+            </li>
+            <li>
+                <a href="#folder-search">Search</a>
+                <ul>
+                    
+                    <li>
+                        <a href="#request-search-find-duplicate-identifiers-of-a-given-type">Find duplicate identifiers of a given type</a>
+                    </li>
+                    
+                    <li>
+                        <a href="#request-search-find-patients-by-identifier">Find patients by identifier</a>
+                    </li>
+                    
+                </ul>
+            </li>
+            <li>
+                <a href="#folder-registry-management">Registry Management</a>
+                <ul>
+                    
+                    <li>
+                        <a href="#request-registry-management-create-register">Create Register</a>
+                    </li>
+                    
+                    <li>
+                        <a href="#request-registry-management-binding-an-encounter-to-a-register">Binding an encounter to a register</a>
+                    </li>
+                    
+                </ul>
+            </li>
+            <li>
+                <a href="#folder-programs">Programs</a>
+                <ul>
+                    
+                    <li>
+                        <a href="#request-programs-create-program">Create program</a>
+                    </li>
+                    
+                    <li>
+                        <a href="#request-programs-retrieve-programs">Retrieve programs</a>
+                    </li>
+                    
+                    <li>
+                        <a href="#request-programs-retrieve-program-workflows-and-states">Retrieve program workflows and states</a>
+                    </li>
+                    
+                </ul>
+            </li>
+            <li>
+                <a href="#folder-concepts">Concepts</a>
+                <ul>
+                    
+                    <li>
+                        <a href="#request-concepts-api-v1-concepts-retrieve-concepts">/api/v1/concepts (Retrieve concepts)</a>
+                    </li>
+                    
+                </ul>
+            </li>
+            <li>
+                <a href="#folder-drugs">Drugs</a>
+                <ul>
+                    
+                    <li>
+                        <a href="#request-drugs-api-v1-drugs-retrieve-drugs">/api/v1/drugs (Retrieve drugs)</a>
+                    </li>
+                    
+                    <li>
+                        <a href="#request-drugs-retrieve-search-for-drugs">Retrieve/search  for drugs</a>
+                    </li>
+                    
+                </ul>
+            </li>
+            <li>
+                <a href="#folder-encounters">Encounters</a>
+                <ul>
+                    
+                    <li>
+                        <a href="#request-encounters-creating-encounters">Creating encounters</a>
+                    </li>
+                    
+                    <li>
+                        <a href="#request-encounters-retrieve-encounters">Retrieve encounters</a>
+                    </li>
+                    
+                    <li>
+                        <a href="#request-encounters-retrieve-encounter-types">Retrieve encounter types</a>
+                    </li>
+                    
+                    <li>
+                        <a href="#request-encounters-searching-encounter-types">Searching encounter types</a>
+                    </li>
+                    
+                </ul>
+            </li>
+            <li>
+                <a href="#folder-people">People</a>
+                <ul>
+                    
+                    <li>
+                        <a href="#request-people-creating-a-person">Creating a Person</a>
+                    </li>
+                    
+                    <li>
+                        <a href="#request-people-retrieve-registered-people">Retrieve registered people</a>
+                    </li>
+                    
+                    <li>
+                        <a href="#request-people-retrieve-specific-person-names">Retrieve specific person names</a>
+                    </li>
+                    
+                    <li>
+                        <a href="#request-people-people-search">People search</a>
+                    </li>
+                    
+                    <li>
+                        <a href="#request-people-retrieve-relationship-types">Retrieve relationship types</a>
+                    </li>
+                    
+                </ul>
+            </li>
+            <li>
+                <a href="#folder-users">Users</a>
+                <ul>
+                    
+                    <li>
+                        <a href="#request-users-creating-users">Creating users</a>
+                    </li>
+                    
+                    <li>
+                        <a href="#request-users-retrieving-all-users">Retrieving all users</a>
+                    </li>
+                    
+                    <li>
+                        <a href="#request-users-retrieving-all-roles">Retrieving all roles</a>
+                    </li>
+                    
+                </ul>
+            </li>
+            <li>
+                <a href="#folder-observations">Observations</a>
+                <ul>
+                    
+                    <li>
+                        <a href="#request-observations-creating-new-observations">Creating new observations</a>
+                    </li>
+                    
+                    <li>
+                        <a href="#request-observations-retrieve-observations">Retrieve observations</a>
+                    </li>
+                    
+                    <li>
+                        <a href="#request-observations-retrieve-appointments">Retrieve appointments</a>
+                    </li>
+                    
+                </ul>
+            </li>      
+            <li>
+                <a href="#folder-drug-orders-and-dispensations">Drug orders and Dispensations</a>
+                <ul>
+                    
+                    <li>
+                        <a href="#request-drug-orders-and-dispensations-creating-drug-orders">Creating drug orders</a>
+                    </li>
+                    
+                    <li>
+                        <a href="#request-drug-orders-and-dispensations-create-dispensations">Create dispensations</a>
+                    </li>
+                    
+                    <li>
+                        <a href="#request-drug-orders-and-dispensations-retrieve-dispensations">Retrieve dispensations</a>
+                    </li>
+                    
+                </ul>
+            </li>  
+        </ul>
+    </div>
 </div>
 <div id="page-content-wrapper">
     <div class="container-fluid">
         <div class="row">
             <div class="col-lg-12">
-                <h1>BHT EMR API</h1>
+                <h1>Welcome to HIS EMR API</h1>
 
-                <h2 id="doc-general-notes">
+                <h3 id="doc-general-notes">
                     General notes
                     <a href="#doc-general-notes"><i class="glyphicon glyphicon-link"></i></a>
-                </h2>
+                </h3>
 
                 <style>
     body > #page-content-wrapper {
@@ -392,7 +374,7 @@ pre code {
     }
 </style>
 
-<p>The BHT EMR API is a
+<p>The HIS EMR API is a
 <a href="https://en.wikipedia.org/wiki/Representational_state_transfer">RESTful</a>
 API providing an abstraction layer to a customised
 <a href="https://openmrs.org/">OpenMRS 1.7</a> database and application engine
@@ -8994,12 +8976,37 @@ Authorization: fbRRafA9Y2Gc</code></pre>
         </div>
     </div>
 </div>
+<div id="page-qr-code">
+    <div class="container">
+        <div class="row">
+            <div class="col-md-12">
+                <div class="text-center">
+                    <h2>Scan using your Malawi HIS CORE App to connect</h2>
+                    <img id="qr-code-image" src="https://chart.googleapis.com/chart?chs=150x150&cht=qr&chl=https://demo.openmrs.org/openmrs/ws/rest/v1/obs/886929?v=full" alt="QR Code" />
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
 <script src="https://code.jquery.com/jquery-2.2.2.min.js"></script>
 <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>
 <script>
     $(document).ready(function() {
         $("table:not(.table)").addClass('table table-bordered');
+
+        $.ajax({
+                url: 'api/v1/site_info?base64=true',
+                method: 'GET',
+                success: function(response) {
+                    // Assuming the response contains the image URL
+                    console.log('QR code image URL:', response);
+                    $('#qr-code-image').attr('src', response.qr_code);
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error fetching the QR code image:', error);
+                }
+            });
     });
 </script>
 </body>
