@@ -18,6 +18,9 @@ gem 'puma', '~> 6.3'
 # Use Json Web Token (JWT) for token based authentication
 gem 'jwt'
 
+# faker gem
+gem 'faker'
+
 # Use the browser gem to get browser information
 gem 'browser'
 
@@ -51,7 +54,8 @@ gem 'rswag-ui'
 
 gem 'emr_ohsp_interface', '~> 2.2.3'
 
-gem 'his_emr_api_lab', '~> 2.0.4'
+# gem 'his_emr_api_lab', '~> 2.0.4'
+gem 'his_emr_api_lab', path: '../his_emr_api_lab'
 
 # gem 'his_emr_api_radiology', '~> 1.0.9'
 
