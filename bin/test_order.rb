@@ -87,7 +87,7 @@ def get_tests(specimens)
     specimen = specimens.sample
   end
 
-  sample_size = tests.size > 2 ? rand(1..tests.size) : 1
+  sample_size = tests.size > 4 ? 3 : 1
 
   {specimen:, tests: tests.sample(sample_size)}
 end
