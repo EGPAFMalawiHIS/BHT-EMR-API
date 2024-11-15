@@ -60,7 +60,7 @@ def order_params(patient:, accession:, specimen:, tests:, program:)
   {
     program_id: program.id,
     patient_id: patient.patient_id,
-    specimen: { concept_id: specimen['concept_id'] },
+    specimen:,
     tests: tests.map { |test| {concept_id: test} },
     start_date: Date.today,
     accession_number: accession,
@@ -89,7 +89,7 @@ def get_tests(specimens)
 
   sample_size = tests.size > 4 ? 3 : 1
 
-  {specimen:, tests: tests.sample(sample_size)}
+  {specimen:, tests: tests.take(sample_size)}
 end
 
 def create_orders(patients)
