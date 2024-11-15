@@ -96,22 +96,14 @@ def create_orders(patients)
   program = Program.find_by_name('OPD Program')
   specimens = fetch_specimens
   orders = []
-  pool_size = database_pool_size
   accessions = accession_nums(num: patients.size)
 
-  mutex = Mutex.new
-  threads = []
+  User.current = User.first
+  Location.current = Location.find(GlobalProperty.find_by(property: 'current_health_center_id').property_value)
 
-  patients.each_slice(pool_size) do |batch|
-    batch.each do |patient|
-      threads << Thread.new do
-        User.current = User.first
-        Location.current = Location.find(GlobalProperty.find_by(property: 'current_health_center_id').property_value)
-        order = create_order_for_patient(patient, specimens, program, accessions[patients.index(patient)])
-        mutex.synchronize { orders << order }
-      end
-    end
-    threads.each(&:join)
+  patients.each do |patient|
+    order = create_order_for_patient(patient, specimens, program, accessions[patients.index(patient)])
+    orders << order
   end
 
   orders
