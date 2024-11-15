@@ -159,9 +159,9 @@ def main(num:)
   end
   puts "\e[32m#{patients.size} patients and #{orders.size} orders have been created\e[0m"
 rescue StandardError => e
+  void_patients(patients)
   LOGGER.error(e.message)
   LOGGER.error(e.backtrace.join("\n"))
-  void_patients(patients)
   puts "\e[31mAn error occurred, voided all patients created\e[0m"
 end
 
