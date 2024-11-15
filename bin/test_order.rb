@@ -154,7 +154,7 @@ def main(num:)
 
   File.open('./log/orders.csv', 'w') do |file|
     orders.each do |order|
-      file.puts("#{order[:accession_number]},#{order[:patient_id]},#{order[:specimen][:concept_id]},#{order[:test_type_ids].map { |test| test[:concept_id] }.join(',')}")
+      file.puts("#{order[:accession_number]},#{order[:patient_id]},#{order[:specimen][:concept_id]},#{order[:tests].map { |test| test[:concept_id] }.join(',')}")
     end
   end
   puts "\e[32m#{patients.size} patients and #{orders.size} orders have been created\e[0m"
