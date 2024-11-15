@@ -110,9 +110,11 @@ def create_orders(patients)
 end
 
 def fetch_specimens
-  Lab::ConceptsService.specimen_types.map do |specimen|
+  specimens = Lab::ConceptsService.specimen_types.map do |specimen|
     { concept_id: specimen['concept_id'], name: specimen['name'] }
   end
+  # we need to reject the specimen with the name 'Pulmonary effusion'
+  specimens.reject { |specimen| specimen[:name] == 'Pulmonary effusion' }
 end
 
 def create_order_for_patient(patient, specimens, program, accession)
