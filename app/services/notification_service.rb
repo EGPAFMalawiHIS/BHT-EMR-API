@@ -30,7 +30,7 @@ class NotificationService
   def create_notification(alert_type, alert_message)
     return if alert_type != 'LIMS'
 
-    lab = User.find_by(username: 'lab_daemon')
+    lab = User.find_by(username: 'lab_daemon') || User.current
     ActiveRecord::Base.transaction do
       alert = NotificationAlert.create!(text: alert_message.to_json, date_to_expire: Time.now + not_period.days,
                                         creator: lab, changed_by: lab, date_created: Time.now)

@@ -11,22 +11,16 @@ def create_patients(num:)
   patients = []
   program = Program.find_by_name('OPD Program')
   pool_size = database_pool_size
-
-  threads = []
   num.times.each_slice(pool_size) do |batch|
     batch.each do
-      threads << Thread.new do
-        User.current = User.first
-        Location.current = Location.find(GlobalProperty.find_by(property: 'current_health_center_id').property_value)
-        params = generate_patient_params
-        person = create_person_with_name(params)
-        patient = create_patient(program, person)
-        patients << patient
-      end
+      User.current = User.first
+      Location.current = Location.find(GlobalProperty.find_by(property: 'current_health_center_id').property_value)
+      params = generate_patient_params
+      person = create_person_with_name(params)
+      patient = create_patient(program, person)
+      patients << patient
     end
-    threads.each(&:join)
   end
-
   patients
 end
 
@@ -37,7 +31,7 @@ def generate_patient_params
     birthdate_estimated: [true, false].sample,
     given_name: Faker::Name.first_name,
     family_name: Faker::Name.last_name,
-    middle_name: Faker::Name.middle_name,
+    middle_name: Faker::Name.middle_name
   }
 end
 
@@ -61,12 +55,12 @@ def order_params(patient:, accession:, specimen:, tests:, program:)
     program_id: program.id,
     patient_id: patient.patient_id,
     specimen:,
-    tests: tests.map { |test| {concept_id: test} },
+    tests: tests.map { |test| { concept_id: test } },
     start_date: Date.today,
     accession_number: accession,
     target_lab: GlobalProperty.find_by_property('target.lab')&.property_value || GlobalProperty.find_by_property('current_health_center_name')&.property_value || 'Kamuzu Central Hospital',
     reason_for_test_id: 432,
-    requesting_clinician: Faker::Name.name,
+    requesting_clinician: Faker::Name.name
   }
 end
 
@@ -80,16 +74,17 @@ def accession_nums(num:)
 end
 
 def get_tests(specimens)
+  tests_used = ConceptName.where(name: ['Liver function tests', 'fbc', 'viral load',
+                                            'Renal Function test']).map(&:concept_id)
   tests = []
-  specimen = specimens.sample
+  selected_tests = []
+  specimen = specimens.select { |sp| %w[plasma blood].include?(sp[:name].downcase) }.sample
   while tests.empty?
-    tests = Lab::ConceptsService.test_types(name: nil, specimen_type: specimen['name']).map(&:concept_id)
-    specimen = specimens.sample
+    tests = Lab::ConceptsService.test_types(name: nil, specimen_type: specimen[:name]).map(&:concept_id)
+    selected_tests = tests.select { |element| tests_used.include?(element) }
+    selected_tests ||= tests
   end
-
-  sample_size = tests.size > 4 ? 3 : 1
-
-  {specimen:, tests: tests.take(sample_size)}
+  { specimen:, tests: selected_tests }
 end
 
 def create_orders(patients)
@@ -131,9 +126,6 @@ def void_patients(patients)
   end
 end
 
-patients = []
-orders = []
-
 def main(num:)
   patients = create_patients(num:)
   orders = create_orders(patients)
@@ -148,7 +140,9 @@ def main(num:)
 
   File.open('./log/orders.csv', 'w') do |file|
     orders.each do |order|
-      file.puts("#{order[:accession_number]},#{order[:patient_id]},#{order[:specimen][:concept_id]},#{order[:tests].map { |test| test[:concept_id] }.join(',')}")
+      file.puts("#{order[:accession_number]},#{order[:patient_id]},#{order[:specimen][:concept_id]},#{order[:tests].map do |test|
+        test[:concept_id]
+      end.join(',')}")
     end
   end
   puts "\e[32m#{patients.size} patients and #{orders.size} orders have been created\e[0m"
@@ -162,4 +156,4 @@ end
 # we need to prompt the user for the number of patients to create
 print 'Enter the number of patients to create: '
 num = gets.chomp.to_i
-main(num: num)
+main(num:)
