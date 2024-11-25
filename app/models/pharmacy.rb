@@ -2,7 +2,7 @@
 
 class Pharmacy < VoidableRecord
   self.table_name = :pharmacy_obs
-  self.primary_key = :pharmacy_module_id
+  self.primary_key = %i[pharmacy_module_id site_id]
 
   belongs_to :item, class_name: 'PharmacyBatchItem',
                     foreign_key: :batch_item_id,

@@ -2,7 +2,7 @@
 
 class Order < VoidableRecord
   self.table_name = :orders
-  self.primary_key = :order_id
+  self.primary_key = %i[order_id site_id]
 
   after_void :void_records
 

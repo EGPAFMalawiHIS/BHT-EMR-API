@@ -3,7 +3,7 @@
 # This is the model file that will hold the stock card report
 class PharmacyStockBalance < ApplicationRecord
   self.table_name = :pharmacy_stock_balances
-  self.primary_key = :id
+  self.primary_key = %i[id  site_id]
 
   belongs_to :drug, class_name: 'Drug', foreign_key: :drug_id, optional: true
 

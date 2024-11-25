@@ -2,7 +2,7 @@
 
 class PersonAttribute < VoidableRecord
   self.table_name = 'person_attribute'
-  self.primary_key = 'person_attribute_id'
+  self.primary_key = %i[person_attribute_id  site_id]
 
   belongs_to(:type, class_name: 'PersonAttributeType',
                     foreign_key: :person_attribute_type_id)

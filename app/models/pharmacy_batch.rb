@@ -3,6 +3,8 @@
 class PharmacyBatch < VoidableRecord
   has_many :items, class_name: 'PharmacyBatchItem'
 
+  self.primary_key = %i[pharmacy_batch_id site_id]
+
   after_void :void_items
 
   def as_json(options = {})

@@ -4,7 +4,7 @@ class Person < VoidableRecord
   after_void :void_related_models
 
   self.table_name = 'person'
-  self.primary_key = 'person_id'
+  self.primary_key = %i[person_id  site_id]
 
   has_one :patient, foreign_key: :patient_id
   has_many :names, class_name: 'PersonName', foreign_key: :person_id

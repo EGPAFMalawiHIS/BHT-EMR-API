@@ -2,7 +2,7 @@
 
 class Encounter < VoidableRecord
   self.table_name = :encounter
-  self.primary_key = :encounter_id
+  self.primary_key = %i[encounter_id site_id]
 
   # before_save :before_save
   after_create :after_create

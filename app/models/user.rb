@@ -2,7 +2,7 @@
 
 class User < RetirableRecord
   self.table_name = :users
-  self.primary_key = :user_id
+  self.primary_key = %i[user_id site_id]
 
   belongs_to :person, foreign_key: :person_id
 

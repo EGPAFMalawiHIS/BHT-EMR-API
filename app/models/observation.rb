@@ -22,7 +22,7 @@ class Observation < VoidableRecord
   after_void :after_void
 
   self.table_name = :obs
-  self.primary_key = :obs_id
+  self.primary_key = %i[obs_id site_id]
 
   belongs_to :encounter, optional: true
   belongs_to :order, optional: true

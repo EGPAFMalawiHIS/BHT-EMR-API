@@ -2,7 +2,7 @@
 
 class Relationship < VoidableRecord
   self.table_name = :relationship
-  self.primary_key = :relationship_id
+  self.primary_key = %i[relationship_id site_id]
 
   belongs_to :person, class_name: 'Person', foreign_key: :person_a,
                       optional: true

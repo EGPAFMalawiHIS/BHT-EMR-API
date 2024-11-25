@@ -2,7 +2,7 @@
 
 class PatientProgram < VoidableRecord
   self.table_name = 'patient_program'
-  self.primary_key = 'patient_program_id'
+  self.primary_key = %i[patient_program_id  site_id]
 
   after_void :after_void
 
