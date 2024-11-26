@@ -4,7 +4,7 @@ class PersonName < VoidableRecord
   self.table_name = 'person_name'
   self.primary_key = %i[person_name_id site_id]
 
-  belongs_to :person, foreign_key: :person_id
+  belongs_to :person, foreign_key: [:person_id, :site_id]
   has_one :person_name_code, foreign_key: :person_name_id
 
   def self.validate_name_record(record, attr, value)

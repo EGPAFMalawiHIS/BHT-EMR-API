@@ -5,7 +5,7 @@ class DrugOrder < ApplicationRecord
   self.primary_key = %i[order_id site_id]
 
   belongs_to :drug, foreign_key: :drug_inventory_id
-  belongs_to :order, foreign_key: :order_id
+  belongs_to :order, foreign_key: %i[order_id site_id]
 
   validates_presence_of :drug_inventory_id, :equivalent_daily_dose
 

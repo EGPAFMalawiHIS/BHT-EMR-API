@@ -7,5 +7,5 @@ class PersonAttribute < VoidableRecord
   belongs_to(:type, class_name: 'PersonAttributeType',
                     foreign_key: :person_attribute_type_id)
 
-  belongs_to :person, foreign_key: :person_id
+  belongs_to :person, foreign_key: [:person_id, :site_id]
 end

@@ -25,13 +25,15 @@ class Observation < VoidableRecord
   self.table_name = :obs
   self.primary_key = %i[obs_id site_id]
 
-  belongs_to :encounter, optional: true
-  belongs_to :order, optional: true
+  belongs_to :encounter, optional: true, foreign_key: %i[encounter_id site_id]
+  belongs_to :order, optional: true, foreign_key: %i[order_id site_id]
   belongs_to :concept
-  belongs_to :person
+  belongs_to :person, foreign_key: %i[person_id site_id]
   belongs_to :drug, class_name: 'Drug', foreign_key: :value_drug, optional: true
-  belongs_to :parent, class_name: 'Observation', foreign_key: :obs_group_id, primary_key: :obs_id, optional: true
-  has_many :children, class_name: 'Observation', foreign_key: :obs_group_id
+  belongs_to :parent, class_name: 'Observation', foreign_key: %i[obs_group_id site_id],
+                      primary_key: %i[obs_id site_id], optional: true
+  has_many :children, class_name: 'Observation', foreign_key: %i[obs_group_id site_id],
+                      primary_key: %i[obs_id site_id], dependent: :destroy
   # belongs_to :concept_name, class_name: 'ConceptName', foreign_key: 'concept_name'
   belongs_to :answer_concept, class_name: 'Concept', foreign_key: 'value_coded', optional: true
   # belongs_to(:answer_concept_name, class_name: 'ConceptName',

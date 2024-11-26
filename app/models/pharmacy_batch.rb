@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 class PharmacyBatch < VoidableRecord
-  has_many :items, class_name: 'PharmacyBatchItem'
+  has_many :items, class_name: 'PharmacyBatchItem', foreign_key: [:pharmacy_batch_id, :site_id]
 
   self.primary_key = %i[pharmacy_batch_id site_id]
 

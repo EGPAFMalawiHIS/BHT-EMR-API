@@ -4,9 +4,9 @@ class Relationship < VoidableRecord
   self.table_name = :relationship
   self.primary_key = %i[relationship_id site_id]
 
-  belongs_to :person, class_name: 'Person', foreign_key: :person_a,
+  belongs_to :person, class_name: 'Person', foreign_key: [:person_a, :site_id],
                       optional: true
-  belongs_to :relation, class_name: 'Person', foreign_key: :person_b,
+  belongs_to :relation, class_name: 'Person', foreign_key: [:person_b, :site_id],
                         optional: true
   belongs_to :type, class_name: 'RelationshipType', foreign_key: :relationship,
                     optional: true

@@ -8,15 +8,15 @@ class Order < VoidableRecord
 
   belongs_to :order_type
   belongs_to :concept
-  belongs_to :encounter
-  belongs_to :patient
-  belongs_to :provider, foreign_key: 'orderer', class_name: 'User', optional: true
+  belongs_to :encounter, foreign_key: [:encounter_id, :site_id]
+  belongs_to :patient, foreign_key: [:patient_id, :site_id]
+  belongs_to :provider, foreign_key: [:orderer, :site_id], class_name: 'User', optional: true
 
   validates_presence_of :patient_id, :concept_id, :encounter_id,
                         :provider, :orderer
-  has_many :observations
-  has_one :lims_acknowledgement_status, foreign_key: :order_id
-  has_one :drug_order
+  has_many :observations, foreign_key: [:order_id, :site_id]
+  has_one :lims_acknowledgement_status, foreign_key: [:order_id, :site_id]
+  has_one :drug_order, foreign_key: [:order_id, :site_id]
 
   validate :start_date
 

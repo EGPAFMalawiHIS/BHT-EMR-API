@@ -3,7 +3,7 @@
 class PharmacyBatchItem < VoidableRecord
   self.primary_key = %i[id  site_id]
 
-  belongs_to :batch, class_name: 'PharmacyBatch', foreign_key: 'pharmacy_batch_id'
+  belongs_to :batch, class_name: 'PharmacyBatch', foreign_key: [:pharmacy_batch_id, :site_id]
   belongs_to :drug
 
   has_many :transactions, class_name: 'Pharmacy', inverse_of: :item

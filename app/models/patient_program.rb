@@ -6,10 +6,10 @@ class PatientProgram < VoidableRecord
 
   after_void :after_void
 
-  belongs_to :patient
+  belongs_to :patient, foreign_key: [:patient_id, :site_id]
   belongs_to :program
   belongs_to :location
-  has_many :patient_states, class_name: 'PatientState', dependent: :destroy
+  has_many :patient_states, class_name: 'PatientState', dependent: :destroy, foreign_key: [:patient_program_id, :site_id]
 
   def as_json(options = {})
     return super(options) if options.fetch(:ignore, false) 

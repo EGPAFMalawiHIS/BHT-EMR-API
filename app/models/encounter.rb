@@ -10,13 +10,13 @@ class Encounter < VoidableRecord
   after_create :after_create
   after_void :after_void
 
-  has_many :observations, dependent: :destroy
-  has_many :drug_orders, through: :orders, foreign_key: 'order_id'
-  has_many :orders, dependent: :destroy
+  has_many :observations, dependent: :destroy, foreign_key: %i[encounter_id site_id]
+  has_many :drug_orders, through: :orders, foreign_key: %i[order_id site_id]
+  has_many :orders, dependent: :destroy, foreign_key: %i[encounter_id site_id]
 
   belongs_to :type, class_name: 'EncounterType', foreign_key: :encounter_type
-  belongs_to :provider, class_name: 'Person', foreign_key: :provider_id
-  belongs_to :patient
+  belongs_to :provider, class_name: 'Person', foreign_key: %i[provider_id site_id]
+  belongs_to :patient, foreign_key: %i[patient_id site_id]
   belongs_to :location, optional: true
   belongs_to :program
 

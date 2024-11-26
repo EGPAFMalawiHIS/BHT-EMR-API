@@ -4,7 +4,7 @@ class PersonAddress < VoidableRecord
   self.table_name = 'person_address'
   self.primary_key = %i[person_address_id site_id]
 
-  belongs_to :person, -> { where(voided: [true, false]) }, foreign_key: :person_id
+  belongs_to :person, -> { where(voided: [true, false]) }, foreign_key: ['person_id', 'site_id']
 
   def as_json(options = {})
     super(options.merge(
