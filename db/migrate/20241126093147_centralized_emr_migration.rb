@@ -2,13 +2,14 @@
 
 # Centralized EMR Migration
 class CentralizedEmrMigration < ActiveRecord::Migration[7.0]
-  TABLES = %w[drug_order encounter obs order patient_program patient_state person_address
+  TABLES = %w[drug_order encounter obs orders patient_program patient_state person_address
               pharmacy_batch_item pharmacy_batch pharmacy_stock_balance pharmacy_stock_verification
-              pharmacy role_privilege role_role user].freeze
+              pharmacy role_privilege role_role users].freeze
   def change
     foreign_keys = []
     primary_keys = []
     tables = ActiveRecord::Base.connection.tables
+    puts "These are the #{TABLES}"
     populate_variables(tables:, foreign_keys:, primary_keys:)
     remove_foreign_keys(foreign_keys:)
     remove_primary_keys(primary_keys:)
