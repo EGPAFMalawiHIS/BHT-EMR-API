@@ -17,6 +17,7 @@ module Auditable
   included do
     before_save :update_change_trail
     before_create :update_create_trail
+    before_create :auto_increment_composite_key
   end
 
   # Saves current user after every save
@@ -43,6 +44,29 @@ module Auditable
 
     self.date_created = Time.now
   end
+
+  def composite_key?
+    self.class.composite? && (self.class.primary_key.is_a?(Array) && self.class.primary_key.length == 2)
+  end
+
+  def composite_key_has_site_id?
+    self.class.primary_key.include?('site_id')
+  end
+
+  # rubocop:disable Metrics/AbcSize
+  def auto_increment_composite_key
+    return unless composite_key? && composite_key_has_site_id?
+
+    composite_key_column = (self.class.primary_key - ['site_id']).first
+    unless composite_key_column && respond_to?(:site_id) && respond_to?(composite_key_column.to_sym)
+      Rails.logger.warn "Auditable model missing site_id or #{composite_key_column}: #{self}"
+      return
+    end
+
+    last_value = self.class.where(site_id:).maximum(composite_key_column.to_sym) || 0
+    self[composite_key_column] = last_value + 1
+  end
+  # rubocop:enable Metrics/AbcSize
 
   def auditable?
     respond_to?(:changed_by) && respond_to?(:date_changed)
