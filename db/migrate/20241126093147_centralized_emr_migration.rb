@@ -45,6 +45,7 @@ class CentralizedEmrMigration < ActiveRecord::Migration[7.0]
 
   def remove_foreign_keys(foreign_keys:)
     foreign_keys.each do |fk|
+      puts "Removing foreign key #{fk[:key_name]} from #{fk[:foreign_table_name]} and #{fk[:primary_table_name]}"
       next unless TABLES.include?(fk[:primary_table_name])
 
       remove_foreign_key fk[:foreign_table_name], name: fk[:key_name]
