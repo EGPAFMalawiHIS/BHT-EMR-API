@@ -4,6 +4,8 @@ class Encounter < VoidableRecord
   self.table_name = :encounter
   self.primary_key = %i[encounter_id site_id]
 
+  include Stream
+
   # before_save :before_save
   after_create :after_create
   after_void :after_void
@@ -28,6 +30,8 @@ class Encounter < VoidableRecord
   #             conditions: 'DATE(encounter.encounter_datetime) = CURRENT_DATE()')
 
   def as_json(options = {})
+    return super(options) if options.fetch(:ignore, false)
+
     super(options.merge(
       include: {
         type: {},

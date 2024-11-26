@@ -3,6 +3,8 @@
 class Person < VoidableRecord
   after_void :void_related_models
 
+  # TODO: stream when demographics change
+
   self.table_name = 'person'
   self.primary_key = %i[person_id  site_id]
 
