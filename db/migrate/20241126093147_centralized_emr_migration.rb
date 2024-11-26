@@ -45,7 +45,7 @@ class CentralizedEmrMigration < ActiveRecord::Migration[7.0]
 
   def remove_foreign_keys(foreign_keys:)
     foreign_keys.each do |fk|
-      next unless TABLES.include?(fk[:foreign_table_name])
+      next unless TABLES.include?(fk[:primary_table_name])
 
       remove_foreign_key fk[:foreign_table_name], name: fk[:key_name]
     end
@@ -87,7 +87,7 @@ class CentralizedEmrMigration < ActiveRecord::Migration[7.0]
   def add_foreign_keys(foreign_keys:)
     # the new foreign key will contain the composite primary key and the site_id
     foreign_keys.each do |fk|
-      next unless TABLES.include?(fk[:foreign_table_name])
+      next unless TABLES.include?(fk[:primary_table_name])
 
       ActiveRecord::Base.connection.execute <<~SQL
         ALTER TABLE #{fk[:foreign_table_name]} ADD FOREIGN KEY (#{fk[:foreign_column_name]}, site_id) REFERENCES #{fk[:primary_table_name]}(#{fk[:primary_column_name]}, site_id)
