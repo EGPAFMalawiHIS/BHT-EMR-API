@@ -13,6 +13,8 @@ class AppendSiteIdToTransactionalTables < ActiveRecord::Migration[7.0]
       SQL
 
       TRANSACTIONAL_TABLES.each do |table|
+        next unless table_exists?(table)
+
         add_column table, :site_id, :integer, default: current_location unless column_exists?(table, :site_id)
 
         constraints = execute_sql <<~SQL
