@@ -18,7 +18,8 @@ class ProgramAppointmentService
     AND i.identifier_type IN(2,3)
     LEFT JOIN patient_identifier i2 ON i2.patient_id = e.patient_id AND i2.voided = 0
     AND i2.identifier_type IN(4)
-    WHERE obs.concept_id = #{concept('Appointment date').concept_id}
+    WHERE obs.concept_id = #{concept('Appointment date').concept_id} 
+    AND obs.site_id=#{Location.current.location_id}
     AND value_datetime BETWEEN '#{date.strftime('%Y-%m-%d 00:00:00')}'
     AND '#{date.strftime('%Y-%m-%d 23:59:59')}'
     GROUP BY i.identifier, p.birthdate, p.gender,
