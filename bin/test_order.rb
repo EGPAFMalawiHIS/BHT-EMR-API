@@ -74,8 +74,10 @@ def accession_nums(num:)
 end
 
 def get_tests(specimens)
-  tests_used = ConceptName.where(name: ['Liver function tests', 'fbc', 'viral load',
-                                            'Renal Function test']).map(&:concept_id)
+  tests_to_be_used = []
+  tests_used = ConceptName.where(
+      name: ['Liver function tests', 'fbc', 'viral load', 'Renal Function test']
+      ).map(&:concept_id)
   tests = []
   selected_tests = []
   specimen = specimens.select { |sp| %w[plasma blood].include?(sp[:name].downcase) }.sample
@@ -84,21 +86,27 @@ def get_tests(specimens)
     selected_tests = tests.select { |element| tests_used.include?(element) }
     selected_tests ||= tests
   end
-  { specimen:, tests: selected_tests }
+  selected_tests.each do |test|
+    tests_to_be_used << { specimen:, tests: [test] }
+  end
+  tests_to_be_used
 end
 
 def create_orders(patients)
   program = Program.find_by_name('OPD Program')
   specimens = fetch_specimens
   orders = []
-  accessions = accession_nums(num: patients.size)
-
+  accessions = accession_nums(num: patients.size * 4)
+  puts accessions
   User.current = User.first
   Location.current = Location.find(GlobalProperty.find_by(property: 'current_health_center_id').property_value)
 
   patients.each do |patient|
-    order = create_order_for_patient(patient, specimens, program, accessions[patients.index(patient)])
-    orders << order
+    tests_data = get_tests(specimens)
+    tests_data.each do |specimen|
+      order = create_order_for_patient(patient, specimen, program, accessions.shift)
+      orders << order
+    end
   end
 
   orders
@@ -112,9 +120,8 @@ def fetch_specimens
   specimens.reject { |specimen| specimen[:name] == 'Pulmonary effusion' }
 end
 
-def create_order_for_patient(patient, specimens, program, accession)
-  test_data = get_tests(specimens)
-  params = order_params(patient:, accession:, specimen: test_data[:specimen], tests: test_data[:tests], program:)
+def create_order_for_patient(patient, specimen, program, accession)
+  params = order_params(patient:, accession:, specimen: specimen[:specimen], tests: specimen[:tests], program:)
   order = Lab::OrdersService.order_test(params)
   Lab::PushOrderJob.perform_now(order.fetch(:order_id))
   order
