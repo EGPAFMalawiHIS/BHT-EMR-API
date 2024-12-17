@@ -12,6 +12,7 @@ module ArtService
         @end_date = end_date.to_date
         @occupation = kwargs[:occupation]
         @site_id = kwargs[:site_id]
+        @dsd = kwargs[:dsd]
       end
 
       def list
@@ -32,6 +33,8 @@ module ArtService
           	p.person_id patient_id, npid.identifier npid, main.value_coded,
           	p.birthdate, p.gender, main.obs_datetime, n.family_name, n.given_name, main.value_coded
           FROM obs main
+          INNER JOIN patient ppp ON ppp.patient_id = main.person_id
+          #{dsd_query(dsd: @dsd, model: 'ppp') if @dsd}
           INNER JOIN person p ON p.person_id = main.person_id
           LEFT JOIN patient_identifier npid ON npid.patient_id = p.person_id
           LEFT JOIN (#{current_occupation_query}) a ON a.person_id = p.person_id

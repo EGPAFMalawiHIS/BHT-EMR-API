@@ -18,7 +18,7 @@ module ArtService
 
       def regimen_report(type)
         ArtService::Reports::RegimenDispensationData.new(type:, start_date: @start_date,
-                                                         end_date: @end_date, occupation: @occupation, site_id: @site_id)
+                                                         end_date: @end_date, occupation: @occupation, site_id: @site_id, dsd: @dsd)
                                                     .find_report
       end
 

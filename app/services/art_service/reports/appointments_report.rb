@@ -44,6 +44,8 @@ module ArtService
                                                            table_name: 'a', include_clause: false).to_s)
                                   .group(:person_id)
 
+        appointments = appointments.joins(dsd_query(dsd: @dsd, model: 'encounter')) if @dsd
+
         appointments.each_with_object([]) do |appointment, patients|
           patient = missed_appointment?(appointment)
 

@@ -10,6 +10,7 @@ module ArtService
         @end_date = end_date.to_date.end_of_day
         @site_id = kwargs[:site_id]
         @occupation = kwargs[:occupation]
+        @dsd = kwargs[:dsd]
       end
 
       def find_report
@@ -34,6 +35,7 @@ module ArtService
           INNER JOIN person_name pn ON pn.person_id = p.person_id AND pn.voided = 0
           LEFT JOIN patient_identifier i ON i.patient_id = p.person_id AND i.voided = 0 AND i.identifier_type = #{indetifier_type}
           LEFT JOIN (#{current_occupation_query}) AS a ON a.person_id = p.person_id
+          #{dsd_query(dsd: @dsd, model: 'ord') if @dsd}
           WHERE o.concept_id = 9737 -- Test Type
           AND o.site_id = #{@site_id}
           AND o.value_coded = 856 -- Viral Load

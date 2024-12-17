@@ -22,6 +22,7 @@ module ArtService
         @range = range || 'viraemia-1000+'
         @occupation = kwargs[:occupation]
         @site_id = kwargs[:site_id]
+        @dsd = kwargs[:dsd]
       end
 
       def find_report
@@ -55,6 +56,7 @@ module ArtService
           INNER JOIN person
             ON person.person_id = orders.patient_id
             AND person.voided = 0
+          #{dsd_query(dsd: @dsd, model: 'orders') if @dsd}
           LEFT JOIN (#{current_occupation_query}) AS a ON a.person_id = orders.patient_id
           /* For each lab order find an HIV Viral Load test */
           INNER JOIN obs AS test_obs
