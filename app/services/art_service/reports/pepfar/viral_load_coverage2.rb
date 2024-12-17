@@ -18,6 +18,7 @@ module ArtService
 
         def initialize(start_date:, end_date:, **kwargs)
           super(start_date:, end_date:, **kwargs)
+          @dsd = kwargs[:dsd]
         end
 
         def find_report
@@ -84,6 +85,7 @@ module ArtService
                    result.value_modifier AS result_modifier,
                    COALESCE(result.value_numeric, result.value_text) AS result_value
             FROM orders
+            #{dsd_query(dsd: @dsd, model: 'orders') if @dsd}
             INNER JOIN person patient ON patient.person_id = orders.patient_id AND patient.voided = 0
             INNER JOIN order_type
               ON order_type.order_type_id = orders.order_type_id
@@ -354,6 +356,7 @@ module ArtService
             #{site_filter(table_name: 'cum')}
             INNER JOIN temp_max_patient_state st ON st.patient_id = cum.patient_id
             #{site_filter(table_name: 'cum')}
+            #{dsd_query(dsd: @dsd, model: 'st') if @dsd}
             INNER JOIN (
               SELECT prescriptions.patient_id, regimens.name AS regimen_category, prescriptions.drugs, prescriptions.prescription_date
               FROM (

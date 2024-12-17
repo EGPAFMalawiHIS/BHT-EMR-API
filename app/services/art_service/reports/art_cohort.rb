@@ -9,6 +9,7 @@ module ArtService
     # it to database.
     class ArtCohort
       include ConcurrencyUtils
+      include CommonSqlQueryUtils
       include ModelUtils
       include CommonSqlQueryUtils
 
@@ -22,6 +23,7 @@ module ArtService
         @cohort_builder = CohortBuilder.new
         @cohort_struct = CohortStruct.new
         @occupation = kwargs[:occupation]
+        @dsd = kwargs[:dsd]
       end
 
       def build_report
@@ -45,7 +47,6 @@ module ArtService
         report_type = (pepfar ? 'pepfar' : 'moh')
         ArtService::Reports::CohortBuilder.new(outcomes_definition: report_type)
                                           .init_temporary_tables(@start_date, @end_date, @occupation)
-
         ActiveRecord::Base.connection.select_all <<~SQL
           SELECT
             e.patient_id person_id, i.identifier arv_number, e.birthdate,
@@ -71,6 +72,7 @@ module ArtService
             AND e.encounter_datetime < DATE('#{@end_date}') + INTERVAL 1 DAY
             GROUP BY e.patient_id
           ) appointment ON appointment.patient_id = e.patient_id
+          #{dsd_query(dsd: @dsd, model: 'e') if @dsd}
           LEFT JOIN patient_identifier i ON i.patient_id = e.patient_id AND i.voided = 0 AND i.identifier_type = 4
           #{site_filter(table_name: 'i')}
           INNER JOIN person_name n ON n.person_id = e.patient_id AND n.voided = 0
