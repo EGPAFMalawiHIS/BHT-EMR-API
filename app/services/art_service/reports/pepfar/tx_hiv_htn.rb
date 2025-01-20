@@ -15,10 +15,7 @@ module ArtService
 
         def initialize(start_date:, end_date:, **kwargs)
           super(start_date:, end_date:, **kwargs)
-<<<<<<< HEAD
           ArtService::Reports::MaternalStatus.new(start_date:, end_date:, **kwargs).process_data
-=======
->>>>>>> b04e3b14d (feat: add TX_HIV_HTN report)
         end
 
         def find_report
@@ -32,22 +29,14 @@ module ArtService
           find_report
         end
 
-<<<<<<< HEAD
         def indicators
           {
-=======
-        def init_report
-          @report = pepfar_age_groups.each_with_object({}) do |age_group, report|
-            report[age_group] = %w[M F].each_with_object({}) do |gender, gender_sub_report|
-              gender_sub_report[gender] = {
->>>>>>> b04e3b14d (feat: add TX_HIV_HTN report)
                 tx_curr: [],
                 ever_diagnosed_htn: [],
                 screened_for_htn: [],
                 newly_diagnosed_htn: [],
                 controlled_htn: [],
               }
-<<<<<<< HEAD
         end
 
         def init_report
@@ -63,16 +52,6 @@ module ArtService
           #   {
             #     "patient_id": 1256,
             #     "systolic": 160.0,
-=======
-            end
-          end
-        end
-
-        # [
-        #   {
-        #     "patient_id": 1256,
-        #     "systolic": 160.0,
->>>>>>> b04e3b14d (feat: add TX_HIV_HTN report)
         #     "diastolic": 100.0,
         #     "date_screened_for_htn": "2024-12-05",
         #     "diagnosed": 1,
@@ -80,7 +59,6 @@ module ArtService
         #   },
         # ]
         def map_results(patients:)
-<<<<<<< HEAD
 
           patients.each do |p|
             next if p['age_group'] == 'Unknown'
@@ -122,40 +100,22 @@ module ArtService
           
           %w[Male FP FNP FBf].each do |key|
             @report['All'][key] = indicators
-=======
-          patients.each do |p|
-            id = p['patient_id']
-
-            @report[p['age_group']][p['gender']][:tx_curr] << id
-            @report[p['age_group']][p['gender']][:screened_for_htn] << id
-            @report[p['age_group']][p['gender']][:ever_diagnosed_htn] << id if p['diagnosed'] == 1
-            @report[p['age_group']][p['gender']][:newly_diagnosed_htn] << id if p['diagnosed'] == 1 && p['date_diagnosed'] > start_date
-            @report[p['age_group']][p['gender']][:controlled_htn] << id if p['systolic'] < SYSTOLIC_THRESHOLD\
-             && p['diastolic'] < DIASTOLIC_THRESHOLD
->>>>>>> b04e3b14d (feat: add TX_HIV_HTN report)
           end
         end
 
         def screened_for_htn
           ActiveRecord::Base.connection.select_all <<~SQL
-<<<<<<< HEAD
                                                                                                                                       SELECT tesd.patient_id,
-=======
-                                                                                                                                          SELECT tesd.patient_id,
->>>>>>> b04e3b14d (feat: add TX_HIV_HTN report)
               disaggregated_age_group(tesd.birthdate, DATE('#{end_date.to_date}')) age_group,
               LEFT(tesd.gender, 1) AS gender,
               systolic.value_numeric AS systolic,
               diastolic.value_numeric AS diastolic,
               DATE(vitals.encounter_datetime) AS date_screened_for_htn,
-<<<<<<< HEAD
               IF (diagnosed.patient_id IS NOT NULL, 1, 0) AS diagonised,
               DATE(diagnosed.date_diagonised) AS date_diagnosed,
-              IF (ms.maternal_status IS NOT NULL, ms.maternal_status, 'Male') AS maternal_status
-=======
-              IF (diagnosed.patient_id IS NOT NULL, 1, 0) AS diagnosed,
-              DATE(diagnosed.date_diagonised) AS date_diagnosed
->>>>>>> b04e3b14d (feat: add TX_HIV_HTN report)
+              IF (ms.maternal_status IS NOT NULL, 
+                ms.maternal_status, 
+                IF (tesd.gender = 'M', 'Male', 'FNP')) AS maternal_status
             FROM temp_earliest_start_date tesd
             INNER JOIN temp_patient_outcomes tpo
               ON tpo.patient_id = tesd.patient_id
@@ -184,10 +144,7 @@ module ArtService
               AND date_diagnosied.voided = 0
               AND date_diagnosied.concept_id = #{concept("Hypertension diagnosis date").id}
             ) diagnosed ON diagnosed.patient_id = tesd.patient_id
-<<<<<<< HEAD
             LEFT JOIN temp_maternal_status ms ON ms.patient_id = tesd.patient_id
-=======
->>>>>>> b04e3b14d (feat: add TX_HIV_HTN report)
             GROUP BY tesd.patient_id
           SQL
         end
