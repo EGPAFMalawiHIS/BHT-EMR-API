@@ -73,6 +73,8 @@ gem 'tzinfo-data', platforms: %i[mingw mswin x64_mingw jruby]
 
 gem 'whenever', '~> 1.0'
 
+gem 'concurrent-ruby', '= 1.3.4'
+
 # gems for reading excel and csv files
 gem 'roo', '~> 2.8'
 
