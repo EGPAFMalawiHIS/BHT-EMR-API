@@ -3,7 +3,7 @@
 class ProgramAppointmentService
   extend ModelUtils
 
-  def self.booked_appointments(program_id, date)
+  def self.booked_appointments(program_id, date, site_id)
     clients = ActiveRecord::Base.connection.select_all("SELECT
     i2.identifier arv_number, i.identifier, p.birthdate, p.gender, n.given_name,
     n.family_name, obs.person_id, p.birthdate_estimated
@@ -19,6 +19,7 @@ class ProgramAppointmentService
     LEFT JOIN patient_identifier i2 ON i2.patient_id = e.patient_id AND i2.voided = 0
     AND i2.identifier_type IN(4)
     WHERE obs.concept_id = #{concept('Appointment date').concept_id}
+    AND obs.site_id = #{site_id}
     AND value_datetime BETWEEN '#{date.strftime('%Y-%m-%d 00:00:00')}'
     AND '#{date.strftime('%Y-%m-%d 23:59:59')}'
     GROUP BY i.identifier, p.birthdate, p.gender,
@@ -46,7 +47,7 @@ class ProgramAppointmentService
 
   # Pretty much exactly like booked appointments above but limits itself to
   # patients with arv_numbers... Lord have mercy...
-  def self.scheduled_appointments(program_id, date)
+  def self.scheduled_appointments(program_id, date, site_id)
     if program_id != program('HIV Program').program_id
       raise InvalidParameterError, 'Scheduled appointments is limited to HIV Program only'
     end
@@ -69,6 +70,7 @@ class ProgramAppointmentService
     AND att.person_attribute_type_id = 12
 
     WHERE obs.concept_id = #{concept('Appointment date').concept_id}
+    AND obs.site_id = #{site_id}
     AND value_datetime BETWEEN '#{date.strftime('%Y-%m-%d 00:00:00')}'
     AND '#{date.strftime('%Y-%m-%d 23:59:59')}'
     GROUP BY i.identifier, p.birthdate, p.gender,
