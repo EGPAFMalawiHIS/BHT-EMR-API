@@ -12,6 +12,7 @@ module ArtService
         @end_date = ActiveRecord::Base.connection.quote(end_date.to_date.strftime('%Y-%m-%d 23:59:59'))
         @type = kwargs[:type]
         @occupation = kwargs[:occupation]
+        @site_id = kwargs[:site_id]
       end
 
       def find_report
@@ -57,6 +58,7 @@ module ArtService
           INNER JOIN drug_order od ON od.order_id = o.order_id AND od.quantity > 0 AND od.drug_inventory_id IN (SELECT drug_id FROM arv_drug)
           LEFT JOIN (#{current_occupation_query}) a ON a.person_id = o.patient_id
           WHERE o.start_date > #{end_date} - INTERVAL 18 MONTH AND o.start_date < #{end_date} + INTERVAL 1 DAY
+          AND o.site_id = #{@site_id}
           AND o.voided = 0 #{%w[Military Civilian].include?(@occupation) ? 'AND' : ''} #{occupation_filter(occupation: @occupation, field_name: 'value', table_name: 'a', include_clause: false)}
           AND o.order_type_id = 1 -- drug order
           GROUP BY o.patient_id
@@ -132,6 +134,7 @@ module ArtService
             GROUP BY concept_id
           ) AS measure_concept ON measure_concept.concept_id = measure.concept_id
           WHERE lab_result_obs.voided = 0
+          AND lab_result_obs.site_id = #{@site_id}
           AND measure.person_id IN (SELECT patient_id FROM temp_reg_outcome WHERE outcome = 'On antiretrovirals')
           AND (measure.value_numeric IS NOT NULL || measure.value_text IS NOT NULL)
           AND lab_result_obs.obs_datetime < #{end_date} + INTERVAL 1 DAY
