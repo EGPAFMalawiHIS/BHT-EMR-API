@@ -211,7 +211,7 @@ module Api
       end
 
       def clients_due_vl
-        render json: service.clients_due_vl(params[:start_date], params[:end_date], occupation: params[:occupation])
+        render json: service.clients_due_vl(params[:start_date], params[:end_date], occupation: params[:occupation], site_id: params[:site_id])
       end
 
       def vl_results
