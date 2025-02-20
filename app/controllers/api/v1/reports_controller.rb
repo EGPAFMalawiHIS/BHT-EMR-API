@@ -146,7 +146,7 @@ module Api
 
       def regimen_report
         render json: service.regimen_report(params[:start_date], params[:end_date], params[:type],
-                                            occupation: params[:occupation])
+                                            occupation: params[:occupation], site_id: params[:site_id])
       end
 
       def screened_for_tb
