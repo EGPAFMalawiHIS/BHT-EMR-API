@@ -11,6 +11,7 @@ module ArtService
         @start_date = start_date
         @end_date = end_date
         @occupation = kwargs[:occupation]
+        @site_id = kwargs[:site_id]
       end
 
       def find_report
@@ -39,7 +40,7 @@ module ArtService
           LEFT JOIN obs reason ON reason.order_id = o.order_id AND reason.voided = 0  AND reason.concept_id = 2429 -- 'Reason for test'
           LEFT JOIN concept_name reason_test ON reason_test.concept_id = reason.value_coded AND reason_test.voided = 0
           LEFT JOIN (#{current_occupation_query}) AS a ON a.person_id = e.patient_id
-          WHERE DATE(o.start_date) BETWEEN '#{start_date}' AND '#{end_date}' AND o.voided = 0 #{%w[Military Civilian].include?(@occupation) ? 'AND' : ''} #{occupation_filter(occupation: @occupation, field_name: 'value', table_name: 'a', include_clause: false)}
+          WHERE DATE(o.start_date) BETWEEN '#{start_date}' AND '#{end_date}' AND o.site_id = #{@site_id} AND o.voided = 0 #{%w[Military Civilian].include?(@occupation) ? 'AND' : ''} #{occupation_filter(occupation: @occupation, field_name: 'value', table_name: 'a', include_clause: false)}
           AND cn.name ="HIV viral load" GROUP BY o.order_id
         SQL
       end
