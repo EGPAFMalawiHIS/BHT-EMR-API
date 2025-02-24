@@ -17,6 +17,7 @@ module ArtService
         @end_date = end_date.to_date
         @tb_prev = ArtService::Reports::Pepfar::TbPrev3.new(start_date: @start_date, end_date: @end_date)
         @occupation = kwargs[:occupation]
+        @site_id = kwargs[:site_id]
       end
 
       def find_report
@@ -269,6 +270,7 @@ module ArtService
                 AND patient_type_obs.voided = 0
               WHERE patient_program.voided = 0
             )
+            AND pp.site_id = #{@site_id}
             AND pp.voided = 0 #{%w[Military Civilian].include?(@occupation) ? 'AND' : ''} #{occupation_filter(occupation: @occupation, field_name: 'value', table_name: 'a', include_clause: false)}
             AND DATE(o.start_date)<= DATE('#{@end_date}')
             GROUP BY pp.patient_id
