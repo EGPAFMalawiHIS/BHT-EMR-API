@@ -130,7 +130,7 @@ module ArtService
         results = ActiveRecord::Base.connection.select_all(
           "SELECT ods.patient_id FROM orders ods
           INNER JOIN drug_order dos ON ods.order_id = dos.order_id AND ods.voided = 0
-           #{site_filter(site_id: @site_id, table_name: 'ods')}
+           #{site_filter(table_name: 'ods')}
           WHERE ods.concept_id IN (#{isoniazid_concept_id}, #{pyridoxine_concept_id}, #{isoniazid_rifapentine_concept_id})
           AND dos.quantity IS NOT NULL
           AND ods.patient_id in (#{patient_ids.join(',')})

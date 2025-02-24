@@ -549,7 +549,7 @@ module ArtService
         data = ActiveRecord::Base.connection.select_all(
           "SELECT patient_id
           FROM orders o INNER JOIN drug_order drg ON drg.order_id = o.order_id
-          #{site_filter(site_id: @site_id, table_name: 'o')}
+          #{site_filter(table_name: 'o')}
           AND o.voided = 0
           WHERE drug_inventory_id IN(
             SELECT drug_id FROM drug
@@ -675,8 +675,8 @@ module ArtService
                  pa.value AS occupation
           FROM patient_program
           INNER JOIN person ON person.person_id = patient_program.patient_id AND person.voided = 0
-          #{site_filter(site_id: @site_id, table_name: 'person')}
-          #{site_filter(site_id: @site_id, table_name: 'patient_program')}
+          #{site_filter(table_name: 'person')}
+          #{site_filter(table_name: 'patient_program')}
           LEFT JOIN (#{current_occupation_query}) pa ON pa.person_id = patient_program.patient_id
           LEFT JOIN patient_state AS outcome
             ON outcome.patient_program_id = patient_program.patient_program_id
@@ -724,8 +724,8 @@ module ArtService
           SELECT pp.patient_id as patient_id
           FROM patient_program pp
           INNER JOIN obs o ON pp.patient_id = o.person_id AND o.concept_id = #{type_of_patient_concept}
-          #{site_filter(site_id: @site_id, table_name: 'o')}
-          #{site_filter(site_id: @site_id, table_name: 'pp')}
+          #{site_filter(table_name: 'o')}
+          #{site_filter(table_name: 'pp')}
           AND o.value_coded IN (#{drug_refill_concept},#{external_concept})
           AND o.voided = 0
           AND o.obs_datetime < DATE('#{end_date}') + INTERVAL 1 DAY
@@ -741,7 +741,7 @@ module ArtService
           SELECT o.patient_id, DATE(MIN(o.start_date)) start_date
           FROM orders o
           INNER JOIN drug_order do ON do.order_id = o.order_id AND do.quantity > 0
-            #{site_filter(site_id: @site_id, table_name: 'o')}
+            #{site_filter(table_name: 'o')}
           INNER JOIN arv_drug ad ON ad.drug_id = do.drug_inventory_id
           LEFT JOIN temp_register_start_date trsd ON trsd.patient_id  = o.patient_id
           WHERE o.start_date < DATE('#{end_date}') + INTERVAL 1 DAY AND o.start_date >= COALESCE(trsd.start_date, DATE('1901-01-01'))
@@ -758,8 +758,8 @@ module ArtService
           INNER JOIN obs o ON o.encounter_id = e.encounter_id AND o.concept_id = 2516 AND e.encounter_type = 9 AND e.program_id = 1 
           AND e.voided = 0 AND e.encounter_datetime < DATE('#{end_date}') + INTERVAL 1 DAY
           AND o.obs_datetime < (DATE('#{end_date}') + INTERVAL 1 DAY) AND e.voided = 0
-          #{site_filter(site_id: @site_id, table_name: 'e')}
-          #{site_filter(site_id: @site_id, table_name: 'o')}
+          #{site_filter(table_name: 'e')}
+          #{site_filter(table_name: 'o')}
           WHERE e.voided = 0
           GROUP BY o.person_id
           HAVING value_datetime IS NOT NULL
@@ -779,8 +779,8 @@ module ArtService
           AND o.value_coded = #{new_patient_concept}
           AND o.voided = 0
           AND o.obs_datetime < DATE('#{end_date}') + INTERVAL 1 DAY
-          #{site_filter(site_id: @site_id, table_name: 'pp')}
-          #{site_filter(site_id: @site_id, table_name: 'o')}
+          #{site_filter(table_name: 'pp')}
+          #{site_filter(table_name: 'o')}
           WHERE pp.program_id = 1
           AND pp.voided = 0
           GROUP BY patient_id
@@ -869,7 +869,7 @@ module ArtService
           SELECT person_id
           FROM obs
           WHERE voided = 0
-            #{site_filter(site_id: @site_id, table_name: 'obs')}
+            #{site_filter(table_name: 'obs')}
             AND concept_id IN (#{bp_concepts.to_sql})
             AND (value_text IS NOT NULL OR value_numeric IS NOT NULL)
             AND obs_datetime < DATE('#{end_date}') + INTERVAL 1 DAY AND obs_datetime >= DATE('#{end_date}') - INTERVAL 12 MONTH
@@ -933,8 +933,8 @@ module ArtService
           INNER JOIN encounter e ON e.encounter_id = o.encounter_id
             AND e.encounter_type = #{hiv_clinic_consultation_encounter_type_id} AND e.voided = 0
             AND e.patient_id IN (#{patient_list.join(',')})
-            #{site_filter(site_id: @site_id, table_name: 'e')}
-            #{site_filter(site_id: @site_id, table_name: 'o')}
+            #{site_filter(table_name: 'e')}
+            #{site_filter(table_name: 'o')}
           WHERE o.voided = 0
           AND o.concept_id IN (#{family_planning_action_to_take_concept_id}, #{method_of_family_planning_concept_id})
           AND o.value_coded NOT IN (#{none_concept_id.join(',')})
@@ -977,8 +977,8 @@ module ArtService
             AND ods.patient_id IN (#{patient_ids.join(',')})
             AND ods.start_date >= '#{start_date.to_date.strftime('%Y-%m-%d 00:00:00')}'
             AND ods.start_date <= '#{end_date.to_date.strftime('%Y-%m-%d 23:59:59')}'
-            #{site_filter(site_id: @site_id, table_name: 'ods')}
-            #{site_filter(site_id: @site_id, table_name: 'dos')}
+            #{site_filter(table_name: 'ods')}
+            #{site_filter(table_name: 'dos')}
           GROUP BY ods.patient_id
         SQL
 
@@ -1002,8 +1002,8 @@ module ArtService
           WHERE ods.patient_id in (#{patient_ids.join(',')})
           AND ods.start_date >= '#{start_date.to_date.strftime('%Y-%m-%d 00:00:00')}'
           AND ods.start_date <= '#{end_date.to_date.strftime('%Y-%m-%d 23:59:59')}'
-          #{site_filter(site_id: @site_id, table_name: 'ods')}
-          #{site_filter(site_id: @site_id, table_name: 'dos')}
+          #{site_filter(table_name: 'ods')}
+          #{site_filter(table_name: 'dos')}
           GROUP BY ods.patient_id
         SQL
 
@@ -1150,7 +1150,7 @@ module ArtService
             AND orders.order_type_id = #{drug_order_type.order_type_id}
             AND orders.concept_id IN (#{arv_drug_concepts.to_sql})
             AND orders.voided = 0
-            #{site_filter(site_id: @site_id, table_name: 'orders')}
+            #{site_filter(table_name: 'orders')}
           WHERE adherence.concept_id = #{drug_order_adherence_concept.concept_id}
             AND ((adherence.value_numeric >= #{MIN_ART_ADHERENCE_THRESHOLD}
                   OR adherence.value_numeric <= #{MAX_ART_ADHERENCE_THRESHOLD})
@@ -1176,7 +1176,7 @@ module ArtService
               AND orders.concept_id IN (SELECT `concept_set`.`concept_id` FROM `concept_set` WHERE `concept_set`.`concept_set` = 1085)
               AND orders.order_type_id = 1
               AND orders.voided = 0
-              #{site_filter(site_id: @site_id, table_name: 'orders')}
+              #{site_filter(table_name: 'orders')}
             INNER JOIN temp_patient_outcomes
               ON temp_patient_outcomes.patient_id = obs.person_id
               AND temp_patient_outcomes.moh_cum_outcome = 'On antiretrovirals'
@@ -1667,7 +1667,7 @@ module ArtService
             AND o.value_coded IN (1065,1755)
             AND o.voided = 0
             AND o.obs_datetime >= '#{start_date}' AND o.obs_datetime < '#{end_date}' + INTERVAL 1 DAY
-            #{site_filter(site_id: @site_id, table_name: 'o')}
+            #{site_filter(table_name: 'o')}
           GROUP BY o.person_id
         SQL
       end
@@ -1805,7 +1805,7 @@ module ArtService
               AND max_ever_registered_obs.obs_datetime = ever_registered_obs.obs_datetime
             INNER JOIN obs AS last_taken_art_obs
               ON last_taken_art_obs.encounter_id = clinic_registration_encounter.encounter_id
-              #{site_filter(site_id: @site_id, table_name: 'last_taken_art_obs')}
+              #{site_filter(table_name: 'last_taken_art_obs')}
               AND last_taken_art_obs.voided = 0
               AND last_taken_art_obs.concept_id = (
                 SELECT concept_id FROM concept_name WHERE name = 'DATE ART LAST TAKEN' LIMIT 1
@@ -1930,9 +1930,9 @@ module ArtService
                     and (`s`.`voided` = 0)
                     and (`p`.`program_id` = 1)
                     and (`s`.`state` = 7))
-            #{site_filter(site_id: @site_id, table_name: 'p')}
-            #{site_filter(site_id: @site_id, table_name: 'pe')}
-            #{site_filter(site_id: @site_id, table_name: 'person')}
+            #{site_filter(table_name: 'p')}
+            #{site_filter(table_name: 'pe')}
+            #{site_filter(table_name: 'person')}
             group by `p`.`patient_id`;
         SQL
       end

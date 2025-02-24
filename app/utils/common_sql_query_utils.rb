@@ -9,11 +9,13 @@ module CommonSqlQueryUtils
                                                                                                   occupation)
   end
 
-  def site_filter(site_id:, table_name: '', clause: 'AND')
-    table_name = "#{table_name}." unless table_name.blank?
-    return '' if site_id.blank?
+  def site_filter(table_name: '', clause: 'AND')
 
-    "#{clause} #{table_name}site_id = '#{site_id}'"
+    return '' if table_name.blank?
+
+    site_id = Location.current&.id
+
+    "#{clause} #{table_name}.site_id = '#{site_id}'"
   end
 
   def occupation_filter(occupation:, field_name:, table_name: '', include_clause: true)
