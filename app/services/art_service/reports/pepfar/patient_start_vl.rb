@@ -6,6 +6,9 @@ module ArtService
       # this module returns all the patient records on when
       # when the patient started ART
       # plus the last viral load result
+
+      include CommonSqlQueryUtils
+
       class PatientStartVl
         def get_patients_last_vl_and_latest_result(patient_ids, _end_date)
           ids = patient_ids.push(0).join(',')

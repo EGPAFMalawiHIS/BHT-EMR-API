@@ -10,6 +10,7 @@ module ArtService
     class ArtCohort
       include ConcurrencyUtils
       include ModelUtils
+      include CommonSqlQueryUtils
 
       LOCK_FILE = 'art_service/reports/cohort.lock'
 
@@ -21,6 +22,7 @@ module ArtService
         @cohort_builder = CohortBuilder.new
         @cohort_struct = CohortStruct.new
         @occupation = kwargs[:occupation]
+        @site_id = kwargs[:site_id]
       end
 
       def build_report
@@ -61,6 +63,7 @@ module ArtService
             FROM encounter e
             INNER JOIN obs o ON o.encounter_id = e.encounter_id AND o.voided = 0 AND o.concept_id = 5096 -- appointment date
             WHERE e.encounter_type = 7 -- appointment encounter type
+            #{site_filter(table_name: 'e')}
             AND e.program_id = 1 -- hiv program
             AND e.patient_id IN (SELECT patient_id FROM temp_patient_outcomes WHERE #{report_type&.downcase == 'pepfar' ? 'pepfar_' : 'moh_' }cum_outcome = 'Defaulted')
             AND e.encounter_datetime < DATE('#{@end_date}') + INTERVAL 1 DAY
@@ -88,6 +91,7 @@ module ArtService
                  outcomes.moh_cum_outcome AS outcome, tesd.earliest_start_date art_start_date
           FROM person p
           INNER JOIN cohort_drill_down c ON c.patient_id = p.person_id
+          #{site_filter(table_name: 'p')}
           INNER JOIN temp_patient_outcomes AS outcomes
             ON outcomes.patient_id = c.patient_id
           INNER JOIN temp_earliest_start_date tesd ON tesd.patient_id = p.person_id

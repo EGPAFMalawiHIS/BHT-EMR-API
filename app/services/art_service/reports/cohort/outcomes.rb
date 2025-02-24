@@ -7,6 +7,7 @@ module ArtService
       # rubocop:disable Metrics/ClassLength
       class Outcomes
         include ArtTempTablesUtils
+        include CommonSqlQueryUtils
 
         attr_reader :end_date, :definition, :rebuild, :start_date, :prev_date
 
@@ -85,6 +86,7 @@ module ArtService
             INNER JOIN temp_earliest_start_date tesd ON tesd.patient_id = o.patient_id
             INNER JOIN drug_order ON drug_order.order_id = o.order_id AND drug_order.quantity > 0
               AND drug_order.drug_inventory_id IN (#{arv_drug})
+              #{site_filter(table_name: 'o')}
             WHERE o.order_type_id = 1 -- drug order
               AND o.start_date < (DATE(#{start ? start_date : end_date}) #{start ? '' : '+ INTERVAL 1 DAY'})
               AND o.voided = 0
@@ -101,6 +103,7 @@ module ArtService
             INNER JOIN temp_earliest_start_date tesd ON tesd.patient_id = o.patient_id
             INNER JOIN drug_order ON drug_order.order_id = o.order_id AND drug_order.quantity > 0
               AND drug_order.drug_inventory_id IN (#{arv_drug})
+              #{site_filter(table_name: 'o')}
             WHERE o.order_type_id = 1 -- drug order
               AND o.start_date < (DATE(#{start ? start_date : end_date}) #{start ? '' : '+ INTERVAL 1 DAY'})
               AND o.start_date >= (DATE(#{start ? prev_date : start_date}) #{start ? '' : '+ INTERVAL 1 DAY'})
@@ -126,6 +129,7 @@ module ArtService
             SELECT pp.patient_id, MAX(ps.start_date) start_date
             FROM patient_state ps
             INNER JOIN patient_program pp ON pp.patient_program_id = ps.patient_program_id AND pp.program_id = 1 AND pp.voided = 0
+            #{site_filter(table_name: 'pp')}
             WHERE ps.start_date < DATE(#{start ? start_date : end_date}) #{start ? '' : '+ INTERVAL 1 DAY'}
               AND ps.voided = 0 AND pp.patient_id IN (SELECT patient_id FROM temp_earliest_start_date)
             GROUP BY pp.patient_id
@@ -140,6 +144,7 @@ module ArtService
             SELECT mps.patient_id, cn.name AS cum_outcome, ps.start_date as outcome_date, ps.state, count(DISTINCT(ps.state)) outcomes, MAX(ps.patient_state_id) patient_state_id
             FROM temp_max_patient_state#{start ? '_start' : ''}  AS mps
             INNER JOIN patient_program  AS pp ON pp.patient_id = mps.patient_id AND pp.program_id = 1 AND pp.voided = 0
+            #{site_filter(table_name: 'pp')}
             INNER JOIN patient_state  AS ps ON ps.patient_program_id = pp.patient_program_id AND ps.start_date = mps.start_date AND ps.voided = 0
             INNER JOIN program_workflow_state pws ON pws.program_workflow_state_id = ps.state AND pws.retired = 0
             INNER JOIN concept_name cn ON cn.concept_id = pws.concept_id AND cn.concept_name_type = 'FULLY_SPECIFIED' AND cn.voided = 0
@@ -157,6 +162,7 @@ module ArtService
             SELECT cs.patient_id, cn.name as cum_outcome, ps.start_date as outcome_date, ps.state, 1, cs.patient_state_id
             FROM patient_state ps
             INNER JOIN temp_current_state#{start ? '_start' : ''} cs ON cs.patient_state_id = ps.patient_state_id
+            #{site_filter(table_name: 'ps')}
             INNER JOIN program_workflow_state pws ON pws.program_workflow_state_id = ps.state AND pws.retired = 0
             INNER JOIN concept_name cn ON cn.concept_id = pws.concept_id AND cn.concept_name_type = 'FULLY_SPECIFIED' AND cn.voided = 0
             WHERE ps.voided = 0 AND cs.outcomes > 1
@@ -178,7 +184,9 @@ module ArtService
               DATE(mdo.start_date) start_date, null, null, null, null
             FROM temp_max_drug_orders#{start ? '_start' : ''} mdo
             INNER JOIN orders o ON o.patient_id = mdo.patient_id AND o.order_type_id = 1 AND DATE(o.start_date) = DATE(mdo.start_date) AND o.voided = 0
+            #{site_filter(table_name: 'o')}
             INNER JOIN drug_order do ON do.order_id = o.order_id AND do.quantity > 0 AND do.drug_inventory_id IN (#{arv_drug})
+            #{site_filter(table_name: 'do')}
             INNER JOIN drug d ON d.drug_id = do.drug_inventory_id
             GROUP BY mdo.patient_id, do.drug_inventory_id HAVING quantity < 6000
             ON DUPLICATE KEY UPDATE concept_id = VALUES(concept_id), daily_dose = VALUES(daily_dose), quantity=VALUES(quantity), start_date = VALUES(start_date), pill_count = VALUES(pill_count), expiry_date = VALUES(expiry_date), pepfar_defaulter_date = VALUES(pepfar_defaulter_date), moh_defaulter_date = VALUES(moh_defaulter_date);
@@ -204,6 +212,7 @@ module ArtService
               FROM obs ob
               INNER JOIN temp_current_medication#{start ? '_start' : ''} cm ON cm.patient_id = ob.person_id AND cm.start_date = DATE(ob.obs_datetime)
               INNER JOIN orders o ON o.order_id = ob.order_id AND o.voided = 0
+              #{site_filter(table_name: 'ob')}
               INNER JOIN drug_order do ON do.order_id = o.order_id AND do.drug_inventory_id = cm.drug_id
               WHERE ob.concept_id = 2540 AND ob.voided = 0
               GROUP BY ob.person_id, cm.drug_id
@@ -234,6 +243,7 @@ module ArtService
             SELECT tesd.patient_id, 'Patient died', MAX(ps.start_date), 'Patient died', MAX(ps.start_date), 1
             FROM temp_earliest_start_date tesd
             INNER JOIN patient_program pp ON pp.patient_id = tesd.patient_id AND pp.program_id = 1 AND pp.voided = 0
+            #{site_filter(table_name: 'pp')}
             INNER JOIN patient_state ps ON ps.patient_program_id = pp.patient_program_id AND ps.state = 3 AND ps.voided = 0 AND ps.start_date <= DATE(#{start ? start_date : end_date}) #{start ? '- INTERVAL 1 DAY' : ''}
             WHERE tesd.patient_id NOT IN (SELECT patient_id FROM temp_patient_outcomes#{start ? '_start' : ''} WHERE step = 1)
             AND tesd.date_enrolled < DATE(#{start ? start_date : end_date}) #{start ? '' : '+ INTERVAL 1 DAY'}
