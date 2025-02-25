@@ -223,7 +223,8 @@ module Api
       end
 
       def lab_test_results
-        render json: service.lab_test_results(params[:start_date], params[:end_date], occupation: params[:occupation])
+        render json: service.lab_test_results(params[:start_date], params[:end_date], occupation: params[:occupation], 
+          site_id: params[:site_id])
       end
 
       def orders_made
