@@ -234,7 +234,7 @@ module Api
 
       def external_consultation_clients
         render json: service.external_consultation_clients(params[:start_date], params[:end_date],
-                                                           occupation: params[:occupation])
+                                                           occupation: params[:occupation], site_id: params[:site_id])
       end
 
       def cxca_reports
