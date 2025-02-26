@@ -21,6 +21,7 @@ module ArtService
         @end_date = end_date
         @range = range || 'viraemia-1000+'
         @occupation = kwargs[:occupation]
+        @site_id = kwargs[:site_id]
       end
 
       def find_report
@@ -113,7 +114,7 @@ module ArtService
                  OR test_result_measure_obs.value_text IS NOT NULL)
             AND test_result_measure_obs.voided = 0
             AND (#{query_range})
-          WHERE orders.order_type_id IN (SELECT order_type_id FROM order_type WHERE name = 'Lab' AND retired = 0)
+          WHERE orders.site_id = #{@site_id} AND orders.order_type_id IN (SELECT order_type_id FROM order_type WHERE name = 'Lab' AND retired = 0)
             AND orders.voided = 0 #{%w[Military Civilian].include?(@occupation) ? 'AND' : ''} #{occupation_filter(occupation: @occupation, field_name: 'value', table_name: 'a', include_clause: false)}
           GROUP BY orders.patient_id
         SQL
