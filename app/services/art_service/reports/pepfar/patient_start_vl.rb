@@ -21,6 +21,7 @@ module ArtService
             FROM person p
             LEFT JOIN patient_identifier pi ON pi.patient_id = p.person_id AND pi.voided = 0 AND pi.identifier_type = 4
             WHERE p.voided = 0
+            #{site_filter(table_name: 'p')}
             AND p.person_id IN (#{ids})
           SQL
         end

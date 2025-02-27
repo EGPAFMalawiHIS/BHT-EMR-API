@@ -147,10 +147,12 @@ module ArtService
             LEFT JOIN patient_identifier ON patient_identifier.patient_id = orders.patient_id
             	AND patient_identifier.identifier_type = #{identifier_type}
             	AND patient_identifier.voided = 0
+              #{site_filter(table_name: 'patient_identifier')}
             LEFT JOIN (#{current_occupation_query}) a ON a.person_id = orders.patient_id
             WHERE orders.voided = 0 #{%w[Military Civilian].include?(@occupation) ? 'AND' : ''} #{occupation_filter(occupation: @occupation, field_name: 'value', table_name: 'a', include_clause: false)}
             AND orders.start_date BETWEEN '#{@completion_start_date}' AND '#{@completion_end_date}'
             AND orders.order_type_id = 1
+            #{site_filter(table_name: 'orders')}
             ORDER BY orders.start_date ASC, orders.patient_id;
           SQL
         end
