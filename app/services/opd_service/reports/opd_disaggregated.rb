@@ -97,14 +97,14 @@ module OpdService
                   AND date_started_art.concept_id = #{concept('Date antiretrovirals started').concept_id}
                   AND date_started_art.voided = 0
                   AND e.encounter_datetime >= '#{start_date}' AND e.encounter_datetime <= '#{end_date}'
-              ) AS hiv_obs ON hiv_obs.patient_id = p.patient_id AND hiv_obs.site_id = #{Location.current.location_id}
+              ) AS hiv_obs ON hiv_obs.patient_id = p.patient_id
               LEFT JOIN (
                 SELECT obs.person_id#{' '}
                 FROM obs
                   WHERE obs.voided = 0
                   AND obs.concept_id = #{concept('Routine TB Screening').concept_id}
                   AND obs.obs_datetime >= '#{start_date}' AND obs.obs_datetime <= '#{end_date}'
-              ) AS screened ON screened.person_id = e.patient_id AND screened.site_id = #{Location.current.location_id}
+              ) AS screened ON screened.person_id = e.patient_id
               LEFT JOIN (
                 SELECT brest.value_coded as breastfeeding,
                        brest.person_id,
@@ -117,7 +117,7 @@ module OpdService
                 AND brest.voided = 0
                 AND preg.voided = 0
                 AND brest.obs_datetime >= '#{start_date}' AND brest.obs_datetime <= '#{end_date}'
-              ) AS preg_status ON preg_status.person_id = p.patient_id AND preg_status.site_id = #{Location.current.location_id}
+              ) AS preg_status ON preg_status.person_id = p.patient_id
             WHERE e.program_id = #{Program.find_by_name('OPD program').program_id} AND e.site_id = #{Location.current.location_id}
             AND reg_date.encounter_datetime >= '#{start_date}' AND reg_date.encounter_datetime <= '#{end_date}'
             AND e.voided = 0
