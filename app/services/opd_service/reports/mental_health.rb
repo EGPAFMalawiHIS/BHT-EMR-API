@@ -17,7 +17,7 @@ module OpdService
         type = EncounterType.find_by_name 'Outpatient diagnosis'
         Encounter.where("encounter_datetime BETWEEN ? AND ?
       AND encounter_type = ?
-      AND c.name IN(?) AND site_id = ?",
+      AND c.name IN(?) AND encounter.site_id = ?",
                         start_date.to_date.strftime('%Y-%m-%d 00:00:00'),
                         end_date.to_date.strftime('%Y-%m-%d 23:59:59'), type.id, concept_names, Location.current.location_id)\
                  .joins("INNER JOIN obs ON obs.encounter_id = encounter.encounter_id

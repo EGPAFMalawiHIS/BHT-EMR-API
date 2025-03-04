@@ -127,7 +127,7 @@ module OpdService
               AND obs.concept_id IN(6543 -- Secondary diagnosis
                 ,6542 -- Primary diagnosis
                 ))#{' '}
-              AND Date(e.date_created) = DATE(o.date_created),
+              AND Date(e.date_created) = DATE(o.date_created)
               AND e.site_id = #{Location.current.location_id}
             ) as diagnosis,
             encounter.patient_id, i.quantity as dispense_quantity,given_name, family_name,
