@@ -81,7 +81,7 @@ module ArtService
         def load_max_drug_orders(start: false)
           ActiveRecord::Base.connection.execute <<~SQL
             INSERT INTO temp_max_drug_orders#{start ? '_start' : ''}
-            SELECT o.patient_id, MAX(o.start_date) AS start_date, NUll
+            SELECT o.patient_id, MAX(o.start_date) AS start_date, NUll, o.site_id
             FROM orders o
             INNER JOIN temp_earliest_start_date tesd ON tesd.patient_id = o.patient_id
             INNER JOIN drug_order ON drug_order.order_id = o.order_id AND drug_order.quantity > 0
@@ -98,7 +98,7 @@ module ArtService
         def update_max_drug_orders(start: false)
           ActiveRecord::Base.connection.execute <<~SQL
             INSERT INTO temp_max_drug_orders#{start ? '_start' : ''}
-            SELECT o.patient_id, MAX(o.start_date) AS start_date, MIN(o.start_date) AS min_order_date
+            SELECT o.patient_id, MAX(o.start_date) AS start_date, MIN(o.start_date) AS min_order_date, o.site_id
             FROM orders o
             INNER JOIN temp_earliest_start_date tesd ON tesd.patient_id = o.patient_id
             INNER JOIN drug_order ON drug_order.order_id = o.order_id AND drug_order.quantity > 0
@@ -117,6 +117,7 @@ module ArtService
           ActiveRecord::Base.connection.execute <<~SQL
             INSERT INTO temp_min_auto_expire_date#{start ? '_start' : ''}
             SELECT cm.patient_id, MIN(cm.start_date), MIN(cm.expiry_date), MIN(cm.pepfar_defaulter_date), MIN(cm.moh_defaulter_date)
+            , cm.site_id
             FROM temp_current_medication#{start ? '_start' : ''} cm
             GROUP BY cm.patient_id
             ON DUPLICATE KEY UPDATE start_date = VALUES(start_date), auto_expire_date = VALUES(auto_expire_date), pepfar_defaulter_date = VALUES(pepfar_defaulter_date), moh_defaulter_date = VALUES(moh_defaulter_date)
@@ -126,7 +127,7 @@ module ArtService
         def load_max_patient_state(start: false)
           ActiveRecord::Base.connection.execute <<~SQL
             INSERT INTO temp_max_patient_state#{start ? '_start' : ''}
-            SELECT pp.patient_id, MAX(ps.start_date) start_date
+            SELECT pp.patient_id, MAX(ps.start_date) start_date, pp.site_id
             FROM patient_state ps
             INNER JOIN patient_program pp ON pp.patient_program_id = ps.patient_program_id AND pp.program_id = 1 AND pp.voided = 0
             #{site_filter(table_name: 'pp')}
@@ -142,6 +143,7 @@ module ArtService
           ActiveRecord::Base.connection.execute <<~SQL
             INSERT INTO temp_current_state#{start ? '_start' : ''}
             SELECT mps.patient_id, cn.name AS cum_outcome, ps.start_date as outcome_date, ps.state, count(DISTINCT(ps.state)) outcomes, MAX(ps.patient_state_id) patient_state_id
+            , mps.site_id
             FROM temp_max_patient_state#{start ? '_start' : ''}  AS mps
             INNER JOIN patient_program  AS pp ON pp.patient_id = mps.patient_id AND pp.program_id = 1 AND pp.voided = 0
             #{site_filter(table_name: 'pp')}
@@ -160,6 +162,7 @@ module ArtService
           ActiveRecord::Base.connection.execute <<~SQL
             INSERT INTO temp_current_state#{start ? '_start' : ''}
             SELECT cs.patient_id, cn.name as cum_outcome, ps.start_date as outcome_date, ps.state, 1, cs.patient_state_id
+            , cs.site_id
             FROM patient_state ps
             INNER JOIN temp_current_state#{start ? '_start' : ''} cs ON cs.patient_state_id = ps.patient_state_id
             #{site_filter(table_name: 'ps')}
@@ -181,7 +184,7 @@ module ArtService
                 ELSE 1
               END daily_dose,
               SUM(do.quantity) quantity,
-              DATE(mdo.start_date) start_date, null, null, null, null
+              DATE(mdo.start_date) start_date, null, null, null, null, mdo.site_id
             FROM temp_max_drug_orders#{start ? '_start' : ''} mdo
             INNER JOIN orders o ON o.patient_id = mdo.patient_id AND o.order_type_id = 1 AND DATE(o.start_date) = DATE(mdo.start_date) AND o.voided = 0
             #{site_filter(table_name: 'o')}
@@ -200,12 +203,14 @@ module ArtService
             COALESCE(first_ob.quantity, 0) + COALESCE(SUM(second_ob.value_numeric),0) + COALESCE(SUM(third_ob.value_numeric),0) AS pill_count,
             DATE_ADD(cm.start_date, INTERVAL (cm.quantity + COALESCE(first_ob.quantity, 0) + COALESCE(SUM(second_ob.value_numeric),0) + COALESCE(SUM(third_ob.value_numeric),0)) / cm.daily_dose DAY),
             DATE_ADD(DATE_ADD(cm.start_date, INTERVAL (cm.quantity + COALESCE(first_ob.quantity, 0) + COALESCE(SUM(second_ob.value_numeric),0) + COALESCE(SUM(third_ob.value_numeric),0)) / cm.daily_dose DAY), INTERVAL 30 DAY),
-            DATE_ADD(DATE_ADD(cm.start_date, INTERVAL (cm.quantity + COALESCE(first_ob.quantity, 0) + COALESCE(SUM(second_ob.value_numeric),0) + COALESCE(SUM(third_ob.value_numeric),0)) / cm.daily_dose DAY), INTERVAL 60 DAY)
+            DATE_ADD(DATE_ADD(cm.start_date, INTERVAL (cm.quantity + COALESCE(first_ob.quantity, 0) + COALESCE(SUM(second_ob.value_numeric),0) + COALESCE(SUM(third_ob.value_numeric),0)) / cm.daily_dose DAY), INTERVAL 60 DAY),
+            cm.site_id
             FROM temp_current_medication#{start ? '_start' : ''} cm
             LEFT JOIN (
               SELECT ob.person_id, cm.drug_id,
                 SUM(ob.value_numeric) + SUM(CASE
                   WHEN ob.value_text is null then 0
+                  WHEN ob.value_text REGEXP '^[0-9]+(\.[0-9]+)?$' then ob.value_text
                   WHEN ob.value_text REGEXP '^[0-9]+(\.[0-9]+)?$' then ob.value_text
                   ELSE 0
                 END) quantity
@@ -230,6 +235,7 @@ module ArtService
           ActiveRecord::Base.connection.execute <<~SQL
             INSERT INTO temp_patient_outcomes#{start ? '_start' : ''}
             SELECT patients.patient_id, 'Patient died', patients.outcome_date, 'Patient died', patients.outcome_date, 1
+            , patients.site_id
             FROM temp_current_state#{start ? '_start' : ''} AS patients
             WHERE patients.outcomes = 1 AND patients.cum_outcome = 'Patient died'
             GROUP BY patients.patient_id
@@ -241,6 +247,7 @@ module ArtService
           ActiveRecord::Base.connection.execute <<~SQL
             INSERT INTO temp_patient_outcomes#{start ? '_start' : ''}
             SELECT tesd.patient_id, 'Patient died', MAX(ps.start_date), 'Patient died', MAX(ps.start_date), 1
+            , tesd.site_id
             FROM temp_earliest_start_date tesd
             INNER JOIN patient_program pp ON pp.patient_id = tesd.patient_id AND pp.program_id = 1 AND pp.voided = 0
             #{site_filter(table_name: 'pp')}
@@ -258,6 +265,7 @@ module ArtService
           ActiveRecord::Base.connection.execute <<~SQL
             INSERT INTO temp_patient_outcomes#{start ? '_start' : ''}
             SELECT patients.patient_id, patients.cum_outcome, patients.outcome_date, patients.cum_outcome, patients.outcome_date, 2
+            , patients.site_id
             FROM temp_current_state#{start ? '_start' : ''} AS patients
             WHERE patients.patient_id NOT IN (SELECT patient_id FROM temp_patient_outcomes#{start ? '_start' : ''} WHERE step = 1)
             AND patients.outcomes = 1
@@ -279,6 +287,7 @@ module ArtService
           ActiveRecord::Base.connection.execute <<~SQL
             INSERT INTO temp_patient_outcomes#{start ? '_start' : ''}
             SELECT patients.patient_id, 'Unknown', NULL, 'Unknown', NULL,3
+            , patients.site_id
             FROM temp_earliest_start_date AS patients
             WHERE date_enrolled < DATE(#{start ? start_date : end_date}) #{start ? '' : '+ INTERVAL 1 DAY'}
               AND (patient_id) NOT IN (SELECT patient_id FROM temp_patient_outcomes#{start ? '_start' : ''} WHERE step IN (1, 2))
@@ -295,7 +304,7 @@ module ArtService
                   IF(moh_defaulter_date > DATE(#{start ? start_date : end_date}) #{start ? '- INTERVAL 1 DAY' : ''}, COALESCE(cs.outcome_date, patients.start_date), moh_defaulter_date),
                   IF(pepfar_defaulter_date > DATE(#{start ? start_date : end_date}) #{start ? '- INTERVAL 1 DAY' : ''}, 'On antiretrovirals', 'Defaulted'),
                   IF(pepfar_defaulter_date > DATE(#{start ? start_date : end_date}) #{start ? '- INTERVAL 1 DAY' : ''}, COALESCE(cs.outcome_date, patients.start_date), pepfar_defaulter_date),
-                  4
+                  4, patients.site_id
             FROM temp_min_auto_expire_date#{start ? '_start' : ''} AS patients
             INNER JOIN temp_current_state#{start ? '_start' : ''} AS cs ON cs.patient_id = patients.patient_id AND cs.outcomes = 1
             WHERE patients.patient_id NOT IN (SELECT patient_id FROM temp_patient_outcomes#{start ? '_start' : ''} WHERE step IN (1, 2, 3))
@@ -313,7 +322,7 @@ module ArtService
                    current_defaulter_date(patient_id, #{function_date}),
                    pepfar_patient_outcome(patient_id, #{function_date}),
                    current_pepfar_defaulter_date(patient_id, #{function_date}),
-                   5
+                   5, temp_earliest_start_date.site_id
             FROM temp_earliest_start_date
             WHERE date_enrolled < DATE(#{start ? start_date : end_date}) + INTERVAL 1 DAY
               AND (patient_id) NOT IN (SELECT patient_id FROM temp_patient_outcomes#{start ? '_start' : ''} WHERE step IN (1, 2, 3, 4))

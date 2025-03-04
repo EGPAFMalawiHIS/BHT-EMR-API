@@ -15,7 +15,7 @@ module CommonSqlQueryUtils
 
     site_id = Location.current&.id
 
-    "#{clause} #{table_name}.site_id = '#{site_id}'"
+    "#{clause} #{table_name}.site_id = #{site_id}"
   end
 
   def occupation_filter(occupation:, field_name:, table_name: '', include_clause: true)
