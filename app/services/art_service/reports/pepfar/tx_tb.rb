@@ -93,6 +93,7 @@ module ArtService
             AND o.voided = 0 #{@report_type == 'moh' ? '' : "AND o.person_id IN (#{@tx_curr.join(',')})"}
             AND o.value_coded IN (SELECT concept_id FROM concept_name WHERE name IN ('TB Suspected', 'TB NOT suspected') AND voided = 0)
             AND o.obs_datetime BETWEEN '#{start_date}' AND '#{end_date}'
+            AND o.site_id = #{Location.current.location_id}
             GROUP BY o.person_id
           SQL
         end
@@ -144,6 +145,7 @@ module ArtService
             AND o.value_coded = #{ConceptName.find_by_name('Confirmed TB on treatment').concept_id}
             AND o.voided = 0
             AND o.obs_datetime BETWEEN '#{start_date}' AND '#{end_date}'
+            AND o.site_id = #{Location.current.location_id}
             GROUP BY o.person_id
           SQL
         end
