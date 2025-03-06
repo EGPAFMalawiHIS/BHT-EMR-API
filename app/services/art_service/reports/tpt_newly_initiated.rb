@@ -16,6 +16,7 @@ module ArtService
         @start_date = ActiveRecord::Base.connection.quote(start_date)
         @end_date = ActiveRecord::Base.connection.quote(end_date)
         @occupation = kwargs[:occupation]
+        @site_id = Location.current.location_id
       end
 
       def find_report
@@ -24,12 +25,14 @@ module ArtService
           patients.each do |patient|
             patient_id = patient['patient_id']
             person = ActiveRecord::Base.connection.select_one <<~SQL
-              SELECT disaggregated_age_group(birthdate, DATE('#{end_date.to_date}')) AS age_group,
-              patient_identifier.identifier AS arv_number, person.*
+              SELECT disaggregated_age_group(birthdate, DATE('#{end_date.to_date}')) AS age_group, patient_identifier.identifier AS arv_number, person.*
               FROM person
               LEFT JOIN patient_identifier ON patient_identifier.patient_id = person.person_id
-              AND patient_identifier.identifier_type IN (SELECT patient_identifier_type_id FROM patient_identifier_type
-              WHERE name = 'ARV Number') AND patient_identifier.voided = 0
+                AND patient_identifier.identifier_type IN (
+                  SELECT patient_identifier_type_id 
+                  FROM patient_identifier_type
+                  WHERE name = 'ARV Number'
+                ) AND patient_identifier.voided = 0 AND person.site_id = #{@site_id}
               WHERE person_id = #{patient_id} LIMIT 1;
             SQL
             age_group = person['age_group']
@@ -81,7 +84,7 @@ module ArtService
           INNER JOIN encounter ON encounter.encounter_id = orders.encounter_id
           AND encounter.program_id = 1
           WHERE DATE(orders.start_date) BETWEEN '#{start_date.to_date}' AND '#{end_date.to_date}'
-          AND orders.voided = 0 AND orders.patient_id = #{patient_id};
+          AND orders.voided = 0 AND orders.patient_id = #{patient_id} AND orders.site_id = #{@site_id};
         SQL
 
         order['start_date'].to_date
@@ -190,7 +193,7 @@ module ArtService
             INNER JOIN drug_order AS drug_order
               ON drug_order.order_id = orders.order_id
               AND drug_order.quantity > 0
-            WHERE patient_program.program_id IN (SELECT program_id FROM program WHERE name = 'HIV Program')
+            WHERE patient_program.program_id IN (SELECT program_id FROM program WHERE name = 'HIV Program') AND patient_program.site_id = #{@site_id}
           ) AND patient_program.patient_id NOT IN (
             /* External consultations */
             SELECT DISTINCT registration_encounter.patient_id
@@ -210,7 +213,7 @@ module ArtService
               INNER JOIN program
                 ON program.program_id = encounter.program_id
                 AND program.name = 'HIV Program'
-              WHERE encounter.encounter_datetime < DATE(#{end_date}) AND encounter.voided = 0
+              WHERE encounter.encounter_datetime < DATE(#{end_date}) AND encounter.voided = 0 AND encounter.site_id = #{@site_id}
               GROUP BY encounter.patient_id
             ) AS max_registration_encounter
               ON max_registration_encounter.patient_id = registration_encounter.patient_id
@@ -220,8 +223,8 @@ module ArtService
               AND patient_type_obs.concept_id IN (SELECT concept_id FROM concept_name WHERE name = 'Type of patient' AND voided = 0)
               AND patient_type_obs.value_coded IN (SELECT concept_id FROM concept_name WHERE name IN ('Drug refill', 'External consultation') AND voided = 0)
               AND patient_type_obs.voided = 0
-            WHERE patient_program.voided = 0
-          )
+            WHERE patient_program.voided = 0 AND patient_program.site_id = #{@site_id}
+          ) AND person.site_id = #{@site_id}
           GROUP BY patient_program.patient_id
         SQL
       end
