@@ -7,6 +7,7 @@ module ArtService
         @start_date = start_date
         @end_date = end_date
         @occupation = kwargs[:occupation]
+        @site_id = Location.current.location_id
       end
 
       def regimen_switch(pepfar)
@@ -53,6 +54,7 @@ module ArtService
             WHERE o.voided = 0
               AND o.start_date <= '#{@end_date.to_date.strftime('%Y-%m-%d 23:59:59')}'
               AND o.start_date >= '#{@start_date.to_date.strftime('%Y-%m-%d 00:00:00')}'
+              AND o.site_id = #{@site_id}
             GROUP BY o.patient_id
           ) lor ON lor.start_date = o.start_date AND lor.patient_id = o.patient_id
           LEFT JOIN obs on obs.order_id = o.order_id AND obs.concept_id=#{pills_dispensed} AND obs.voided = 0
@@ -61,6 +63,7 @@ module ArtService
           WHERE o.voided = 0
             AND o.start_date <= '#{@end_date.to_date.strftime('%Y-%m-%d 23:59:59')}'
             AND o.start_date >= '#{@start_date.to_date.strftime('%Y-%m-%d 00:00:00')}'
+            AND o.site_id = #{@site_id}
           ORDER BY o.patient_id
         SQL
 
@@ -123,7 +126,7 @@ module ArtService
           WHERE
           (
             start_date BETWEEN '#{@start_date.to_date.strftime('%Y-%m-%d 00:00:00')}' AND '#{@end_date.to_date.strftime('%Y-%m-%d 23:59:59')}'
-            AND t.drug_inventory_id IN (#{drug_ids.join(',')}) AND t.quantity > 0
+            AND t.drug_inventory_id IN (#{drug_ids.join(',')}) AND t.quantity > 0 AND orders.site_id = #{@site_id}
           )
           group by patient_id")
 
@@ -138,8 +141,10 @@ module ArtService
           INNER JOIN drug ON d.drug_inventory_id = drug.drug_id
           INNER JOIN tmp_latest_arv_dispensation k on (o.patient_id = k.patient_id and DATE(o.start_date) =  k.start_date)
           WHERE d.drug_inventory_id IN(#{drug_ids.join(',')})
-          AND d.quantity > 0 AND o.voided = 0 AND o.start_date BETWEEN '#{@start_date.to_date.strftime('%Y-%m-%d 00:00:00')}'
-          AND '#{@end_date.to_date.strftime('%Y-%m-%d 23:59:59')}' GROUP BY o.order_id;
+            AND d.quantity > 0 AND o.voided = 0 AND o.start_date BETWEEN '#{@start_date.to_date.strftime('%Y-%m-%d 00:00:00')}'
+            AND '#{@end_date.to_date.strftime('%Y-%m-%d 23:59:59')}'
+            AND o.site_id = #{@site_id}
+          GROUP BY o.order_id;
         SQL
 
         patient_ids = []
@@ -164,6 +169,7 @@ module ArtService
             AND (`p`.`program_id` = 1)
             AND (`s`.`state` = 7))
             AND (`s`.`start_date` <= '#{@end_date.to_date.strftime('%Y-%m-%d 23:59:59')}'
+            AND (`p`.`site_id` = #{@site_id})
             AND p.patient_id IN(#{patient_ids.join(',')}))
           GROUP BY `p`.`patient_id`;
         SQL
@@ -183,17 +189,22 @@ module ArtService
           INNER JOIN drug_order d ON d.order_id = o.order_id
           INNER JOIN drug ON drug.drug_id = d.drug_inventory_id
           WHERE d.drug_inventory_id IN(#{drug_ids.join(',')})
-          AND o.patient_id = #{patient_id} AND
-          d.quantity > 0 AND o.voided = 0 AND DATE(o.start_date) = (
-            SELECT DATE(MAX(start_date)) FROM orders
-            INNER JOIN drug_order t USING(order_id)
-            WHERE patient_id = o.patient_id
-            AND (
-              start_date BETWEEN '#{@start_date.to_date.strftime('%Y-%m-%d 00:00:00')}'
-              AND '#{@end_date.to_date.strftime('%Y-%m-%d 23:59:59')}'
-              AND t.drug_inventory_id IN(#{drug_ids.join(',')}) AND quantity > 0
-            )
-          ) GROUP BY (o.order_id)
+            AND o.patient_id = #{patient_id} 
+            AND d.quantity > 0 
+            AND o.voided = 0 
+            AND o.site_id = #{@site_id}
+            AND DATE(o.start_date) = (
+              SELECT DATE(MAX(start_date)) FROM orders
+              INNER JOIN drug_order t USING(order_id)
+              WHERE patient_id = o.patient_id
+              AND (
+                start_date BETWEEN '#{@start_date.to_date.strftime('%Y-%m-%d 00:00:00')}'
+                AND '#{@end_date.to_date.strftime('%Y-%m-%d 23:59:59')}'
+                AND t.drug_inventory_id IN(#{drug_ids.join(',')}) AND quantity > 0
+                AND orders.site_id = #{@site_id}
+              )
+            ) 
+          GROUP BY (o.order_id)
         SQL
       end
 
@@ -240,7 +251,8 @@ module ArtService
               LEFT JOIN person_name n ON n.person_id = p.person_id AND n.voided = 0
               LEFT JOIN patient_identifier i ON i.patient_id = p.person_id
               AND i.identifier_type = 4 AND i.voided = 0
-              WHERE p.person_id = #{patient_id} GROUP BY p.person_id
+              WHERE p.person_id = #{patient_id} AND p.site_id = #{@site_id}
+              GROUP BY p.person_id
               ORDER BY n.date_created DESC, i.date_created DESC;
             SQL
 
@@ -315,7 +327,8 @@ module ArtService
               LEFT JOIN person_name n ON n.person_id = p.person_id AND n.voided = 0
               LEFT JOIN patient_identifier i ON i.patient_id = p.person_id
               AND i.identifier_type = 4 AND i.voided = 0
-              WHERE p.person_id = #{patient_id} GROUP BY p.person_id
+              WHERE p.person_id = #{patient_id} AND p.site_id = #{@site_id}
+              GROUP BY p.person_id
               ORDER BY n.date_created DESC, i.date_created DESC
             SQL
 
@@ -365,8 +378,8 @@ module ArtService
       def current_weight(patient_id)
         weight_concept = ConceptName.find_by_name('Weight (kg)').concept_id
         obs = Observation.where("person_id = ? AND concept_id = ?
-          AND obs_datetime <= ? AND (value_numeric IS NOT NULL OR value_text IS NOT NULL)",
-                                patient_id, weight_concept, @end_date.to_date.strftime('%Y-%m-%d 23:59:59'))\
+          AND obs_datetime <= ? AND (value_numeric IS NOT NULL OR value_text IS NOT NULL) AND site_id = ?",
+                                patient_id, weight_concept, @end_date.to_date.strftime('%Y-%m-%d 23:59:59'), @site_id)\
                          .order('obs_datetime DESC, date_created DESC')
 
         return nil if obs.blank?
@@ -411,6 +424,7 @@ module ArtService
           WHERE o.concept_id = #{ConceptName.find_by_name('Test Type').concept_id}
           AND o.value_coded = #{ConceptName.find_by_name('HIV viral load').concept_id}
           AND o.voided = 0
+          AND o.site_id = #{@site_id}
           AND o.person_id IN (#{patient_list.join(',')})
           GROUP BY odr.patient_id
         SQL
@@ -431,6 +445,7 @@ module ArtService
             AND co.obs_datetime <= '#{@end_date}'
             AND (co.value_numeric IS NOT NULL || co.value_text IS NOT NULL)
             AND co.person_id IN (#{patient_list.join(',')})
+            AND co.site_id = #{@site_id}
             GROUP BY co.person_id
           ) AS latest_vl ON latest_vl.obs_datetime = o.obs_datetime AND latest_vl.person_id = o.person_id
           INNER JOIN orders odr ON odr.order_id = o.order_id AND odr.voided = 0
@@ -438,6 +453,7 @@ module ArtService
           AND o.voided = 0 AND o.obs_datetime <= '#{@end_date}'
           AND (o.value_numeric IS NOT NULL || o.value_text IS NOT NULL)
           AND o.person_id IN (#{patient_list.join(',')})
+          AND o.site_id = #{@site_id}
           ORDER BY o.obs_datetime DESC
         SQL
       end
