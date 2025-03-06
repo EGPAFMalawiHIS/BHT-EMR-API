@@ -1308,10 +1308,8 @@ module ArtService
           FROM temp_earliest_start_date e
           INNER JOIN temp_patient_side_effects s ON s.patient_id = e.patient_id
           INNER JOIN temp_patient_outcomes o ON o.patient_id = e.patient_id AND o.moh_cum_outcome = 'On antiretrovirals'
-          #{site_filter(table_name: 'e')}
-          #{site_filter(table_name: 's')}
-          #{site_filter(table_name: 'o')}
-          WHERE DATE(e.date_enrolled) <= '#{end_date.to_date}';
+          WHERE DATE(e.date_enrolled) <= '#{end_date.to_date}'
+          #{site_filter(table_name: 'e')};
         SQL
 
         (records || []).each do |data|
@@ -1365,18 +1363,20 @@ module ArtService
           data = ActiveRecord::Base.connection.select_all(
             "SELECT patient_id, died_in(t.patient_id, moh_cum_outcome, earliest_start_date) died_in FROM temp_patient_outcomes o
             INNER JOIN temp_earliest_start_date t USING(patient_id)
-            WHERE moh_cum_outcome = 'Patient died' GROUP BY patient_id
+            WHERE moh_cum_outcome = 'Patient died' 
             #{site_filter(table_name: 'o')}
             #{site_filter(table_name: 't')}
+            GROUP BY patient_id
             HAVING died_in IN ('4+ months', 'Unknown')"
           )
         else
           data = ActiveRecord::Base.connection.select_all(
             "SELECT patient_id, died_in(t.patient_id, moh_cum_outcome, earliest_start_date) died_in FROM temp_patient_outcomes o
             INNER JOIN temp_earliest_start_date t USING(patient_id)
-            WHERE moh_cum_outcome = 'Patient died' GROUP BY patient_id
+            WHERE moh_cum_outcome = 'Patient died' 
             #{site_filter(table_name: 'o')}
             #{site_filter(table_name: 't')}
+            GROUP BY patient_id
             HAVING died_in = '#{month_str}'"
           )
         end
@@ -1736,6 +1736,7 @@ module ArtService
           INNER JOIN temp_pregnant_obs ft ON ft.person_id = tesd.patient_id AND ft.obs_datetime = tesd.earliest_start_date
             AND tesd.gender = 'F'
             #{site_filter(table_name: 'tesd')}
+            #{site_filter(table_name: 'ft')}
           WHERE tesd.gender = 'F' and tesd.date_enrolled >= '#{start_date}' AND tesd.date_enrolled <= '#{end_date}'
           GROUP BY tesd.patient_id
         SQL
@@ -1819,14 +1820,17 @@ module ArtService
           FROM temp_earliest_start_date
           INNER JOIN clinic_registration_encounter
             ON clinic_registration_encounter.patient_id = temp_earliest_start_date.patient_id
+            #{site_filter(table_name: 'clinic_registration_encounter')}
           LEFT JOIN ever_registered_obs
             ON ever_registered_obs.person_id = temp_earliest_start_date.patient_id
             AND ever_registered_obs.value_coded = (
               SELECT concept_id FROM concept_name WHERE name = 'Yes' AND voided = 0 LIMIT 1
             )
+            #{site_filter(table_name: 'ever_registered_obs')}
           LEFT JOIN (
               SELECT person_id, MIN(obs_datetime) AS obs_datetime
               FROM ever_registered_obs
+              #{site_filter(table_name: 'ever_registered_obs', clause: 'WHERE')}
               GROUP BY person_id
             ) AS max_ever_registered_obs
               ON max_ever_registered_obs.person_id = ever_registered_obs.person_id
@@ -1845,7 +1849,6 @@ module ArtService
                                        last_taken_art_obs.value_datetime,
                                        last_taken_art_obs.obs_datetime) <= 14,
                         TRUE)
-            #{site_filter(table_name: 'last_taken_art_obs')}
             AND temp_earliest_start_date.patient_id NOT IN (#{re_initiated_on_art.join(',')})
           GROUP BY temp_earliest_start_date.patient_id;
         SQL
