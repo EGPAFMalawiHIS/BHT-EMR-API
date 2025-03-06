@@ -18,6 +18,7 @@ module ArtService
           @cut_off_point = start_date.to_date
           @end_date = ActiveRecord::Base.connection.quote(end_date)
           @occupation = kwargs[:occupation]
+          @site_id = Location.current.location_id
         end
 
         def find_report
@@ -152,6 +153,7 @@ module ArtService
                   AND denominator_encounter.encounter_datetime >= DATE(#{start_date}) - INTERVAL 6 MONTH
                   AND denominator_encounter.encounter_datetime <= DATE(#{start_date})
                   AND denominator_encounter.voided = 0
+                  AND denominator_encounter.site_id = #{@site_id}
                 GROUP BY patient_id
             ) AS denominator_patient ON denominator_patient.patient_id = person.person_id
             INNER JOIN encounter AS prescription_encounter
@@ -161,11 +163,13 @@ module ArtService
               AND prescription_encounter.encounter_datetime >= DATE(#{start_date}) - INTERVAL 6 MONTH
               AND prescription_encounter.encounter_datetime <= DATE(#{end_date})
               AND prescription_encounter.voided = 0
+              AND prescription_encounter.site_id = #{@site_id}
             INNER JOIN orders
               ON orders.encounter_id = prescription_encounter.encounter_id
               AND orders.order_type_id IN (SELECT order_type_id FROM order_type WHERE name = 'Drug order')
               AND orders.start_date >= DATE(#{start_date}) - INTERVAL 6 MONTH
               AND orders.start_date <= DATE(#{end_date})
+              AND orders.site_id = #{@site_id}
               AND orders.voided = 0
             INNER JOIN concept_name
               ON concept_name.concept_id = orders.concept_id
@@ -203,7 +207,7 @@ module ArtService
                 AND patient_type_obs.concept_id IN (SELECT concept_id FROM concept_name WHERE name = 'Type of patient' AND voided = 0)
                 AND patient_type_obs.value_coded IN (SELECT concept_id FROM concept_name WHERE name IN ('Drug refill', 'External consultation') AND voided = 0)
                 AND patient_type_obs.voided = 0
-              WHERE pp.voided = 0
+              WHERE pp.voided = 0 AND pp.site_id = #{@site_id}
             )
             GROUP BY person.person_id
           SQL
@@ -246,6 +250,7 @@ module ArtService
             AND o.order_type_id IN (SELECT order_type_id FROM order_type WHERE name = 'Drug order')
             AND o.voided = 0
             AND o.patient_id = #{patient_id}
+            AND o.site_id = #{@site_id}
             GROUP BY o.patient_id
           SQL
         end
@@ -286,6 +291,7 @@ module ArtService
               FROM obs o
               WHERE o.concept_id = #{ConceptName.find_by_name('TPT Drugs Received').concept_id}
               AND o.voided = 0
+              AND o.site_id = #{@site_id}
               AND o.value_drug IN (SELECT drug_id FROM drug WHERE concept_id IN (SELECT concept_id FROM concept_name WHERE name IN ('Rifapentine', 'Isoniazid', 'Isoniazid/Rifapentine')))
               AND o.person_id = #{patient_id}
               AND o.value_numeric IS NOT NULL
@@ -308,6 +314,7 @@ module ArtService
               INNER JOIN drug_order dor ON dor.order_id = o.order_id AND dor.quantity > 0
               WHERE o.order_type_id IN (SELECT order_type_id FROM order_type WHERE name = 'Drug order')
               AND o.voided = 0
+              AND o.site_id = #{@site_id}
               AND o.concept_id IN (#{ConceptName.where(name: ['Rifapentine', 'Isoniazid', 'Isoniazid/Rifapentine']).select(:concept_id).to_sql})
               AND o.patient_id = #{patient_id}
               AND o.auto_expire_date IS NOT NULL
@@ -333,6 +340,7 @@ module ArtService
               FROM obs o
               WHERE o.concept_id = #{ConceptName.find_by_name('TPT Drugs Received').concept_id}
               AND o.voided = 0
+              AND o.site_id = #{@site_id}
               AND o.value_drug IN (SELECT drug_id FROM drug WHERE concept_id IN (SELECT concept_id FROM concept_name WHERE name IN ('Rifapentine', 'Isoniazid', 'Isoniazid/Rifapentine')))
               AND o.person_id = #{patient_id}
               AND o.value_numeric IS NOT NULL
@@ -355,6 +363,7 @@ module ArtService
               INNER JOIN drug_order dor ON dor.order_id = o.order_id AND dor.quantity > 0
               WHERE o.order_type_id IN (SELECT order_type_id FROM order_type WHERE name = 'Drug order')
               AND o.voided = 0
+              AND o.site_id = #{@site_id}
               AND o.concept_id IN (#{ConceptName.where(name: ['Rifapentine', 'Isoniazid', 'Isoniazid/Rifapentine']).select(:concept_id).to_sql})
               AND o.patient_id = #{patient_id}
               AND o.auto_expire_date IS NOT NULL
