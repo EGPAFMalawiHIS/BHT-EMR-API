@@ -39,10 +39,12 @@ module CommonSqlQueryUtils
       WHERE concept_id IN (SELECT concept_id FROM concept_name WHERE name = 'Type of patient' AND voided = 0)
       AND DATE(obs_datetime) <= #{end_date}
       AND voided = 0
+      #{site_filter(table_name: 'obs')}
       GROUP BY person_id) latest_record
       WHERE obs.person_id = latest_record.person_id
       AND obs.concept_id = latest_record.concept_id
       AND obs.obs_datetime = latest_record.obs_datetime
+      #{site_filter(table_name: 'obs')}
       AND obs.value_coded IN (SELECT concept_id FROM concept_name WHERE name = 'Drug refill' || name = 'External consultation')
       AND obs.voided = 0
     SQL
@@ -56,7 +58,9 @@ module CommonSqlQueryUtils
       ON a.person_attribute_id = b.person_attribute_id
       AND a.date_created < b.date_created
       AND b.voided = 0
+      #{site_filter(table_name: 'b')}
       WHERE b.person_attribute_id IS NULL AND a.person_attribute_type_id = 13 AND a.voided = 0
+      #{site_filter(table_name: 'a')}
     SQL
   end
 end

@@ -111,6 +111,7 @@ module ArtService
             SELECT patient_id, 'Unknown', patients.site_id
             FROM temp_earliest_start_date AS patients
             WHERE date_enrolled <= #{date}
+            AND site_id = #{Location.site_id}
               AND patient_id NOT IN (
                 SELECT patient_id FROM temp_patient_side_effects
                 WHERE site_id = #{Location.site_id}

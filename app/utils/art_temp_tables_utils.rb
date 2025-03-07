@@ -411,7 +411,7 @@ module ArtTempTablesUtils
 
   def create_temp_patient_side_effects_indexes
     ActiveRecord::Base.connection.execute <<~SQL
-      CREATE INDEX idx_side_effects ON temp_patient_side_effects (patient_id, has_se)
+      CREATE INDEX idx_side_effects ON temp_patient_side_effects (patient_id, has_se, site_id)
     SQL
   end
 

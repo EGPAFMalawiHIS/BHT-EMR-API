@@ -681,6 +681,7 @@ module ArtService
                  (SELECT value_coded FROM obs
                   WHERE concept_id = 7563 AND person_id = patient_program.patient_id AND voided = 0
                   AND obs_datetime < DATE(#{end_date}) + INTERVAL 1 DAY
+                  #{site_filter(table_name: 'obs')}
                   ORDER BY obs_datetime DESC, date_created DESC LIMIT 1) AS reason_for_starting_art,
                  pa.value AS occupation,
                  patient_program.site_id
@@ -1555,13 +1556,13 @@ module ArtService
               reason_for_starting_art IN (#{unknown_concepts})
               AND date_enrolled >= '#{start_date}'
               AND date_enrolled <= '#{end_date}'
-              
+              #{site_filter(table_name: 'temp_earliest_start_date')}
             )
             OR (
               reason_for_starting_art IN (#{stage_1_and_2_concepts})
               AND date_enrolled <= DATE('2016-04-01')
+              #{site_filter(table_name: 'temp_earliest_start_date')}
             )
-          #{site_filter(table_name: 'temp_earliest_start_date')}
         SQL
       end
 
@@ -1648,7 +1649,7 @@ module ArtService
           WHERE date_enrolled >= '#{start_date}'
             AND date_enrolled <= '#{end_date}'
             AND reason_for_starting_art IN (#{reason_concept_ids.to_sql})
-          #{site_filter(table_name: 'temp_earliest_start_date')}
+            #{site_filter(table_name: 'temp_earliest_start_date')}
         SQL
       end
 
@@ -1717,7 +1718,7 @@ module ArtService
       def load_temp_pregnant_obs(start_date, end_date)
         ActiveRecord::Base.connection.execute <<~SQL
           INSERT INTO temp_pregnant_obs
-          SELECT o.person_id,o.value_coded, DATE(o.obs_datetime) obs_datetime, o.site_id
+          SELECT o.person_id,o.value_coded, MIN(DATE(o.obs_datetime)) obs_datetime, o.site_id
           FROM obs o
           WHERE o.concept_id IN (6131,1755,7972,7563)
             AND o.value_coded IN (1065,1755)
