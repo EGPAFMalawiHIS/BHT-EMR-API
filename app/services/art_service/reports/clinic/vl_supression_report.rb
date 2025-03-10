@@ -14,6 +14,7 @@ module ArtService
           @end_date = end_date
           @occupation = kwargs[:occupation]
           @type = kwargs[:system_type] || 'poc'
+          @site_id = kwargs[:site_id]
         end
 
         def find_report
@@ -94,7 +95,8 @@ module ArtService
             start_date:,
             end_date:,
             occupation:,
-            type:
+            type:,
+            site_id: @site_id
           )
         end
       end

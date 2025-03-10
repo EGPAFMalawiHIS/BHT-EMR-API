@@ -18,6 +18,7 @@ module ArtService
 
         def initialize(start_date:, end_date:, **kwargs)
           super(start_date:, end_date:, **kwargs)
+          @site_id = kwargs[:site_id]
         end
 
         def find_report
@@ -89,7 +90,6 @@ module ArtService
               ON order_type.order_type_id = orders.order_type_id
               AND order_type.name = 'Lab'
               AND order_type.retired = 0
-              #{site_query(table_name: 'orders')}
             INNER JOIN concept_name
               ON concept_name.concept_id = orders.concept_id
               AND concept_name.name IN ('Blood', 'DBS (Free drop to DBS card)', 'DBS (Using capillary tube)', 'Plasma')
@@ -98,7 +98,6 @@ module ArtService
               ON reason_for_test.order_id = orders.order_id
               AND reason_for_test.concept_id IN (SELECT concept_id FROM concept_name WHERE name LIKE 'Reason for test' AND voided = 0)
               AND reason_for_test.voided = 0
-              #{site_query(table_name: 'reason_for_test')}
             LEFT JOIN concept_name AS reason_for_test_value
               ON reason_for_test_value.concept_id = reason_for_test.value_coded
               AND reason_for_test_value.voided = 0
@@ -107,7 +106,6 @@ module ArtService
               AND result.concept_id IN (SELECT concept_id FROM concept_name WHERE name LIKE 'HIV Viral load' AND voided = 0)
               AND result.voided = 0
               AND (result.value_text IS NOT NULL OR result.value_numeric IS NOT NULL)
-              #{site_query(table_name: 'result')}
             INNER JOIN (
               /* Get the latest order dates for each patient */
               SELECT orders.patient_id, MAX(orders.start_date) AS start_date
@@ -134,7 +132,7 @@ module ArtService
             WHERE orders.start_date < DATE(#{ActiveRecord::Base.connection.quote(end_date)}) + INTERVAL 1 DAY
               AND orders.start_date >= DATE(#{ActiveRecord::Base.connection.quote(start_date)}) - INTERVAL 12 MONTH
               AND orders.voided = 0
-              #{site_query(table_name: 'orders')}
+              AND orders.site_id = #{@site_id}
               AND orders.patient_id IN (#{clients.push(0).join(',')})
             GROUP BY orders.patient_id
           SQL
@@ -198,10 +196,9 @@ module ArtService
             SELECT o.person_id, o.value_coded
             FROM obs o
             LEFT JOIN obs a ON a.person_id = o.person_id AND a.obs_datetime > o.obs_datetime AND a.concept_id IN (#{pregnant_concepts.to_sql}) AND a.voided = 0
-            #{site_query(table_name: 'o')}
-            #{site_query(table_name: 'a')}
             AND a.obs_datetime >= DATE(#{ActiveRecord::Base.connection.quote(start_date)}) AND a.obs_datetime < DATE(#{ActiveRecord::Base.connection.quote(end_date)}) + INTERVAL 1 DAY
             WHERE a.obs_id is null
+              AND o.site_id = #{@site_id}
               AND o.obs_datetime >= DATE(#{ActiveRecord::Base.connection.quote(start_date)})
               AND o.obs_datetime < DATE(#{ActiveRecord::Base.connection.quote(end_date)}) + INTERVAL 1 DAY
               AND o.voided = 0
@@ -217,10 +214,9 @@ module ArtService
             SELECT o.person_id, o.value_coded
             FROM obs o
             LEFT JOIN obs a ON a.person_id = o.person_id AND a.obs_datetime > o.obs_datetime AND a.concept_id IN (#{breast_feeding_concepts.to_sql}) AND a.voided = 0
-            #{site_query(table_name: 'o')}
-            #{site_query(table_name: 'a')}
             AND a.obs_datetime >= DATE(#{ActiveRecord::Base.connection.quote(start_date)}) AND a.obs_datetime < DATE(#{ActiveRecord::Base.connection.quote(end_date)}) + INTERVAL 1 DAY
             WHERE a.obs_id is null
+              AND o.site_id = #{@site_id}
               AND o.obs_datetime >= DATE(#{ActiveRecord::Base.connection.quote(start_date)})
               AND o.obs_datetime < DATE(#{ActiveRecord::Base.connection.quote(end_date)}) + INTERVAL 1 DAY
               AND o.voided = 0
@@ -324,7 +320,6 @@ module ArtService
               INNER JOIN program_workflow_state pws ON pws.program_workflow_id = pw.program_workflow_id AND pws.retired = 0
               INNER JOIN concept_name cn ON cn.concept_id = pws.concept_id AND cn.concept_name_type = 'FULLY_SPECIFIED' AND cn.voided = 0
               WHERE pw.program_id = 1 AND pw.retired = 0 AND pws.terminal = 1
-              #{site_filter(table_name: 'pws')}
             SQL
           ).map { |state| state['state'] }
         end
@@ -365,7 +360,6 @@ module ArtService
             ) regimen ON regimen.patient_id = cum.patient_id
             LEFT JOIN (#{current_occupation_query}) a ON a.person_id = cum.patient_id
             LEFT JOIN patient_identifier pid ON pid.patient_id = cum.patient_id AND pid.identifier_type IN (#{pepfar_patient_identifier_type.to_sql}) AND pid.voided = 0
-            #{site_filter(table_name: 'pid')}
             LEFT JOIN (
               SELECT ab.patient_id, MAX(ab.start_date) start_date
               FROM orders ab
@@ -377,12 +371,12 @@ module ArtService
                 AND ab.order_id = b.order_id
                 AND ab.start_date < b.start_date
                 AND b.voided = 0
-                #{site_filter(table_name: 'b')}
               WHERE b.patient_id IS NULL AND ab.voided = 0 AND ab.order_type_id = 4 AND ab.start_date < DATE(#{ActiveRecord::Base.connection.quote(end_date)}) + INTERVAL 1 DAY
               GROUP BY ab.patient_id
             ) current_order ON current_order.patient_id = cum.patient_id
             WHERE cum.step > 0 AND e.date_enrolled < DATE(#{ActiveRecord::Base.connection.quote(end_date)}) + INTERVAL 1 DAY
               AND ((cum.pepfar_cum_outcome != 'On antiretrovirals' AND cum.pepfar_outcome_date >= (DATE(#{ActiveRecord::Base.connection.quote(end_date)}) - INTERVAL 12 MONTH)) OR cum.pepfar_cum_outcome = 'On antiretrovirals')
+              AND pid.site_id = #{@site_id}
             GROUP BY cum.patient_id
           SQL
         end
