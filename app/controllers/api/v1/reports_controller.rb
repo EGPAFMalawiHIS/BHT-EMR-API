@@ -122,7 +122,7 @@ module Api
 
       def missed_appointments
         start_date, end_date = params.require %i[start_date end_date]
-        stats = service.missed_appointments(start_date, end_date, occupation: params[:occupation])
+        stats = service.missed_appointments(start_date, end_date, occupation: params[:occupation], site_id: params[:site_id])
 
         render json: stats
       end
