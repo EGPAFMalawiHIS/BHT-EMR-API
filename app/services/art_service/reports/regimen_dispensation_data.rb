@@ -254,7 +254,8 @@ module ArtService
 
       def maternal_status
         ArtService::Reports::Pepfar::ViralLoadCoverage2.new(start_date: @start_date,
-                                                            end_date: @end_date).vl_maternal_status(alive_clients)
+                                                            end_date: @end_date,
+                                                            site_id: @site_id).vl_maternal_status(alive_clients)
       end
 
       def fetch_maternal_status(patient_id)

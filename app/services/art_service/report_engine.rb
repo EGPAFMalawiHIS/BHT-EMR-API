@@ -67,6 +67,7 @@ module ArtService
     end
 
     def cohort_disaggregated(quarter, age_group, start_date, end_date, rebuild, init, **kwargs)
+      debugger
       cohort = REPORTS['COHORT_DISAGGREGATED'].new(type: 'disaggregated', name: 'disaggregated', start_date:,
                                                    end_date:, rebuild:, **kwargs)
       return cohort.initialize_disaggregated if init

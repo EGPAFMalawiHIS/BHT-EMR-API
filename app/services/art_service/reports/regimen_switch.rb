@@ -447,7 +447,8 @@ module ArtService
         return nil if current_gender.blank?
 
         result = ArtService::Reports::Pepfar::ViralLoadCoverage2.new(start_date: @start_date,
-                                                                     end_date: @end_date).vl_maternal_status([patient_id])
+                                                                     end_date: @end_date,
+                                                                     site_id: @site_id).vl_maternal_status([patient_id])
         gender = 'FNP'
         gender = 'FP' unless result[:FP].blank?
         gender = 'FBf' unless result[:FBf].blank?

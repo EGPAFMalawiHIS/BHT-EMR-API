@@ -11,7 +11,7 @@ module ArtService
       # 5. for the results pick the latest result within the reporting period
       # rubocop:disable Metrics/ClassLength
       class ViralLoadCoverage2 < CachedReport
-        attr_reader :start_date, :end_date, :occupation, :rebuild
+        attr_reader :start_date, :end_date, :occupation, :site_id, :rebuild
 
         include Utils
         include CommonSqlQueryUtils

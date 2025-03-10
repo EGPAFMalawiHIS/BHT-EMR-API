@@ -6,7 +6,7 @@ module ArtService
       # Disaggregated cohort report
       # rubocop:disable Metrics/ClassLength
       class Disaggregated
-        attr_accessor :type, :start_date, :end_date, :rebuild, :occupation, :report, :maternal
+        attr_accessor :type, :start_date, :end_date, :rebuild, :occupation, :report, :maternal, :site_id
 
         include ModelUtils
         include ArtService::Reports::Pepfar::Utils
@@ -17,6 +17,7 @@ module ArtService
           @end_date = end_date
           @rebuild = kwargs[:rebuild]&.casecmp?('true')
           @occupation = kwargs[:occupation]
+          @site_id = kwargs[:site_id]
           @maternal = {}
         end
 
@@ -88,7 +89,7 @@ module ArtService
         end
 
         def process_maternal_data
-          result = ArtService::Reports::Pepfar::ViralLoadCoverage2.new(start_date:, end_date:, occupation:)
+          result = ArtService::Reports::Pepfar::ViralLoadCoverage2.new(start_date:, end_date:, occupation:, site_id: @site_id)
                                                                   .vl_maternal_status(maternal.keys)
           # result comes in this form: { FP: [], FBf: [] }
           # we need to loop through the keys

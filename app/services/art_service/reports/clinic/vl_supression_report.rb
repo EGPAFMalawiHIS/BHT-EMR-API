@@ -96,7 +96,7 @@ module ArtService
             end_date:,
             occupation:,
             type:,
-            site_id: @site_id
+            site_id:
           )
         end
       end
