@@ -44,6 +44,7 @@ module ArtService
             INNER JOIN temp_patient_outcomes tpo ON tpo.patient_id = tesd.patient_id AND tpo.#{@report_type&.downcase == 'pepfar' ? 'pepfar_' : 'moh_' }cum_outcome = 'On antiretrovirals'
             INNER JOIN temp_current_medication tcm ON tcm.patient_id = tesd.patient_id
             WHERE tesd.date_enrolled <= '#{@end_date}' AND tesd.gender IN ('M', 'F')
+             #{site_filter(table_name: 'tesd')}
             GROUP BY tesd.patient_id
           SQL
 
