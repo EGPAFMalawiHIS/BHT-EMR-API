@@ -19,6 +19,7 @@ module ArtService
                                            &.property_value
                                            &.casecmp?('true')
         @occupation = kwargs[:occupation]
+        @site_id = kwargs[:site_id]
       end
 
       def find_report
@@ -101,6 +102,7 @@ module ArtService
             ) last_orders ON initial_orders.patient_id = last_orders.patient_id
             LEFT JOIN (#{current_occupation_query}) a ON a.person_id = initial_orders.patient_id
             WHERE initial_orders.start_date BETWEEN #{as_of} AND #{start_date}
+            AND initial_orders.site_id = #{@site_id}
             AND initial_orders.order_type_id = #{drug_order_type_id} #{%w[Military Civilian].include?(@occupation) ? 'AND' : ''} #{occupation_filter(occupation: @occupation, field_name: 'value', table_name: 'a', include_clause: false)}
             AND initial_orders.auto_expire_date IS NOT NULL
             AND initial_orders.patient_id NOT IN (
@@ -131,6 +133,7 @@ module ArtService
             LEFT JOIN patient_identifier ON patient_identifier.patient_id = initial_order.patient_id AND patient_identifier.identifier_type = #{patient_identifier_type_id}
             LEFT JOIN (#{current_occupation_query}) a ON a.person_id = initial_order.patient_id
             WHERE initial_order.start_date BETWEEN #{as_of} AND #{start_date}
+              AND initial_order.site_id = #{@site_id}
               AND initial_order.voided = 0
               AND initial_order.auto_expire_date IS NOT NULL
               AND initial_order.order_type_id = #{drug_order_type_id}

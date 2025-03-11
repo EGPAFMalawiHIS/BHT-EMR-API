@@ -20,6 +20,7 @@ module ArtService
         @formulation = formulation
         @regimen = regimen
         @occupation = kwargs[:occupation]
+        @site_id = kwargs[:site_id]
       end
 
       def find_report
@@ -105,6 +106,7 @@ module ArtService
                  .joins(:order)
                  .joins("LEFT JOIN (#{current_occupation_query}) AS a ON a.person_id = orders.patient_id")
                  .where(quantity: 1..Float::INFINITY, drug_inventory_id: drugs)
+                 .where(site_id: @site_id)
                  .where(occupation_filter(occupation: @occupation, field_name: 'value', table_name: 'a',
                                           include_clause: false).to_s)
                  .merge(treatment_orders)

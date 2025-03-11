@@ -8,6 +8,7 @@ module ArtService
       def initialize(start_date:, end_date:, **kwargs)
         @start_date = start_date.to_date.beginning_of_day
         @end_date = end_date.to_date.end_of_day
+        @site_id = kwargs[:site_id]
         @occupation = kwargs[:occupation]
       end
 
@@ -34,6 +35,7 @@ module ArtService
           LEFT JOIN patient_identifier i ON i.patient_id = p.person_id AND i.voided = 0 AND i.identifier_type = #{indetifier_type}
           LEFT JOIN (#{current_occupation_query}) AS a ON a.person_id = p.person_id
           WHERE o.concept_id = 9737 -- Test Type
+          AND o.site_id = #{@site_id}
           AND o.value_coded = 856 -- Viral Load
           AND o.obs_datetime BETWEEN '#{@start_date}' AND '#{@end_date}'
           AND o.voided = 0 #{%w[Military Civilian].include?(@occupation) ? 'AND' : ''} #{occupation_filter(occupation: @occupation, field_name: 'value', table_name: 'a', include_clause: false)}
