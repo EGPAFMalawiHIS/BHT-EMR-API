@@ -33,6 +33,7 @@ module ArtService
         appointments = Observation.joins(:encounter)
                                   .joins("LEFT JOIN (#{current_occupation_query} )AS a ON a.person_id = obs.person_id")
                                   .merge(appointment_encounters)
+                                  .where(site_id: @site_id)
                                   .where.not(person_id: referral_patients.select(:person_id))
                                   .where(site_id: @site_id)
                                   .where(concept: ConceptName.where(name: 'Appointment date').select(:concept_id))
