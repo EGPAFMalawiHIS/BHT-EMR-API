@@ -2,12 +2,12 @@
 
 class Patient < VoidableRecord
   include ModelUtils
-
+  
   after_void :void_related_models
-
+  
   NPID_NAME = 'National id'
   LEGACY_NPID_NAME = 'Old national id'
-
+  
   self.table_name = 'patient'
   self.primary_key = 'patient_id'
 

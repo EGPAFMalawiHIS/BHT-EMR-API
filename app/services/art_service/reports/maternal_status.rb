@@ -72,8 +72,8 @@ module ArtService
 
       def load_pregnant_women
         ActiveRecord::Base.connection.execute <<~SQL
-          INSERT INTO temp_maternal_status (patient_id, maternal_status)
-          SELECT o.person_id, 'FP' as maternal_status
+          INSERT INTO temp_maternal_status (patient_id, maternal_status, site_id)
+          SELECT o.person_id, 'FP' as maternal_status, c.site_id
           FROM obs  o
           INNER JOIN temp_earliest_start_date  c ON c.patient_id = o.person_id AND c.gender = 'F'
           LEFT JOIN obs  a ON a.person_id = o.person_id AND a.obs_datetime > o.obs_datetime AND a.concept_id IN (#{pregnant_concepts.to_sql}) AND a.voided = 0
@@ -90,8 +90,8 @@ module ArtService
 
       def load_breast_feeding
         ActiveRecord::Base.connection.execute <<~SQL
-          INSERT INTO temp_maternal_status  (patient_id, maternal_status)
-          SELECT o.person_id,  'FBf' as maternal_status
+          INSERT INTO temp_maternal_status  (patient_id, maternal_status, site_id)
+          SELECT o.person_id,  'FBf' as maternal_status, c.site_id
           FROM obs  o
           INNER JOIN temp_earliest_start_date  c ON c.patient_id = o.person_id AND c.gender = 'F'
           LEFT JOIN obs  a ON a.person_id = o.person_id AND a.obs_datetime > o.obs_datetime AND a.concept_id IN (#{breast_feeding_concepts.to_sql}) AND a.voided = 0

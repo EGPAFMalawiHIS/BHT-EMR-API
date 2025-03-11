@@ -16,23 +16,23 @@ class Location < RetirableRecord
     Thread.current['current_location'] = location
   end
 
+  def self.site_id
+    Location.current.id
+  end
+
   def as_json(options = {})
     super(options.merge(include: { parent: {} }, methods: %i[district]))
   end
 
   def self.current_health_center
-    property = GlobalProperty.find_by_property('current_health_center_id')
+    property = Location.current
     raise 'Global property current_health_center not set' unless property
 
-    Location.find(property.property_value)
+    property
   end
 
   def district
     city_village
-  end
-
-  def site_id
-    Location.current_health_center.location_id.to_s
   end
 
   def related_locations_including_self

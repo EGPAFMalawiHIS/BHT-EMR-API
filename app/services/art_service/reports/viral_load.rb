@@ -15,6 +15,7 @@ module ArtService
                                            &.property_value
                                            &.casecmp?('true')
         @occupation = kwargs[:occupation]
+        @site_id = kwargs[:site_id]
       end
 
       def clients_due
@@ -142,6 +143,7 @@ module ArtService
             AND obs.value_datetime >= DATE(#{start_date})
             AND obs.value_datetime < DATE(#{end_date}) + INTERVAL 1 DAY
             AND obs.voided = 0
+            AND obs.site_id = #{@site_id}
           GROUP BY obs.person_id
           ORDER BY obs.value_datetime
         SQL

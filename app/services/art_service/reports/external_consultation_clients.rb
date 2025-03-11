@@ -11,6 +11,7 @@ module ArtService
         @start_date = start_date.to_date
         @end_date = end_date.to_date
         @occupation = kwargs[:occupation]
+        @site_id = kwargs[:site_id]
       end
 
       def list
@@ -46,7 +47,7 @@ module ArtService
           ) sub_group ON main.person_id = sub_group.person_id
           AND main.obs_datetime = sub_group.obs_datetime
           AND main.concept_id = sub_group.concept_id
-          WHERE main.value_coded IN (#{ext_consultation_concept_id}, #{drug_refill_concept_id}) #{%w[Military Civilian].include?(@occupation) ? 'AND' : ''} #{occupation_filter(occupation: @occupation, field_name: 'value', table_name: 'a', include_clause: false)}
+          WHERE main.site_id = #{@site_id} AND main.value_coded IN (#{ext_consultation_concept_id}, #{drug_refill_concept_id}) #{%w[Military Civilian].include?(@occupation) ? 'AND' : ''} #{occupation_filter(occupation: @occupation, field_name: 'value', table_name: 'a', include_clause: false)}
           ORDER BY n.date_created DESC
         SQL
 

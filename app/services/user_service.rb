@@ -122,7 +122,7 @@ module UserService
   end
 
   def self.authenticate(token)
-    user = User.where(authentication_token: token).first
+    user = User.unscoped.where(authentication_token: token).first
 
     return nil if user.nil? || user.token_expiry_time < Time.now
 
@@ -130,13 +130,15 @@ module UserService
   end
 
   def self.login(username, password, site_id)
-    user = User.where(username:, site_id:).first
+    user = User.unscoped.where(username:, site_id:).first
     unless user&.active? && \
            (bart_authenticate(user, password) || \
             new_arch_authenticate(user, password))
       return nil
     end
     user.location = Location.find(site_id)
+    User.current = user
+    Location.current = user.location
     new_authentication_token user
   rescue StandardError => e
     Rails.logger.error "Error logging in: #{e}"

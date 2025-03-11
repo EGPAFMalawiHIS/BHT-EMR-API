@@ -7,6 +7,7 @@ module ArtService
         @start_date = start_date
         @end_date = end_date
         @occupation = kwargs[:occupation]
+        @site_id = kwargs[:site_id]
       end
 
       def regimen_switch(pepfar)
@@ -15,7 +16,7 @@ module ArtService
 
       def regimen_report(type)
         ArtService::Reports::RegimenDispensationData.new(type:, start_date: @start_date,
-                                                         end_date: @end_date, occupation: @occupation)
+                                                         end_date: @end_date, occupation: @occupation, site_id: @site_id)
                                                     .find_report
       end
 

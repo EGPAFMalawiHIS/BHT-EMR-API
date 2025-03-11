@@ -12,6 +12,7 @@ module ArtService
         @start_date = start_date
         @end_date = end_date
         @occupation = kwargs[:occupation]
+        @site_id = kwargs[:site_id]
       end
 
       def find_report
@@ -52,6 +53,7 @@ module ArtService
               AND encounter.program_id = #{hiv_program_id}
             LEFT JOIN (#{current_occupation_query}) a ON a.person_id = obs.person_id
             WHERE obs.concept_id IN (#{pregnant_concepts.select(:concept_id).to_sql})
+              AND obs.site_id = #{@site_id}
               AND obs.value_coded = #{yes_concept_id}
               AND obs.person_id IN (#{patients_on_treatment.to_sql})
               AND obs.obs_datetime = (

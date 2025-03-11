@@ -84,6 +84,7 @@ module ArtService
               WHERE o.concept_id = #{ConceptName.find_by_name('TB status').concept_id}
               AND o.value_coded IN (SELECT concept_id FROM concept_name WHERE name IN ('TB Suspected', 'TB NOT suspected') AND voided = 0)
               AND o.voided = 0 AND o.obs_datetime BETWEEN '#{start_date}' AND '#{end_date}' #{@report_type == 'moh' ? '' : "AND o.person_id IN (#{@tx_curr.join(',')})"}
+              #{site_query(table_name: 'o')}
               GROUP BY o.person_id
             ) current_obs ON current_obs.person_id = o.person_id AND current_obs.obs_datetime = o.obs_datetime
             INNER JOIN concept_name cn ON cn.concept_id = o.value_coded AND cn.voided = 0
@@ -93,6 +94,7 @@ module ArtService
             AND o.voided = 0 #{@report_type == 'moh' ? '' : "AND o.person_id IN (#{@tx_curr.join(',')})"}
             AND o.value_coded IN (SELECT concept_id FROM concept_name WHERE name IN ('TB Suspected', 'TB NOT suspected') AND voided = 0)
             AND o.obs_datetime BETWEEN '#{start_date}' AND '#{end_date}'
+            #{site_query(table_name: 'o')}
             GROUP BY o.person_id
           SQL
         end
@@ -134,16 +136,19 @@ module ArtService
                 COALESCE(MAX(tcd.value_datetime),MAX(o.obs_datetime)) AS tb_confirmed_date
               FROM obs o
               LEFT JOIN obs tcd ON tcd.concept_id = #{ConceptName.find_by_name('TB treatment start date').concept_id} AND tcd.voided = 0 AND tcd.person_id = o.person_id
+              #{site_query(table_name: 'tcd')}
               WHERE o.concept_id = #{ConceptName.find_by_name('TB status').concept_id}
               AND o.value_coded = #{ConceptName.find_by_name('Confirmed TB on treatment').concept_id}
               AND o.voided = 0 #{@report_type == 'moh' ? '' : "AND o.person_id IN (#{@tx_curr.join(',')})"}
               AND o.obs_datetime <= '#{start_date}'
+              #{site_query(table_name: 'o')}
               GROUP BY o.person_id
             ) prev ON prev.person_id = o.person_id
             WHERE o.concept_id = #{ConceptName.find_by_name('TB status').concept_id}
             AND o.value_coded = #{ConceptName.find_by_name('Confirmed TB on treatment').concept_id}
             AND o.voided = 0
             AND o.obs_datetime BETWEEN '#{start_date}' AND '#{end_date}'
+            #{site_query(table_name: 'o')}
             GROUP BY o.person_id
           SQL
         end

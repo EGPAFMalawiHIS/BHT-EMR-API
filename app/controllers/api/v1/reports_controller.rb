@@ -146,7 +146,7 @@ module Api
 
       def regimen_report
         render json: service.regimen_report(params[:start_date], params[:end_date], params[:type],
-                                            occupation: params[:occupation])
+                                            occupation: params[:occupation], site_id: params[:site_id])
       end
 
       def screened_for_tb
@@ -211,7 +211,7 @@ module Api
       end
 
       def clients_due_vl
-        render json: service.clients_due_vl(params[:start_date], params[:end_date], occupation: params[:occupation])
+        render json: service.clients_due_vl(params[:start_date], params[:end_date], occupation: params[:occupation], site_id: params[:site_id])
       end
 
       def vl_results
@@ -223,7 +223,8 @@ module Api
       end
 
       def lab_test_results
-        render json: service.lab_test_results(params[:start_date], params[:end_date], occupation: params[:occupation])
+        render json: service.lab_test_results(params[:start_date], params[:end_date], occupation: params[:occupation], 
+          site_id: params[:site_id])
       end
 
       def orders_made
@@ -233,7 +234,7 @@ module Api
 
       def external_consultation_clients
         render json: service.external_consultation_clients(params[:start_date], params[:end_date],
-                                                           occupation: params[:occupation])
+                                                           occupation: params[:occupation], site_id: params[:site_id])
       end
 
       def cxca_reports
