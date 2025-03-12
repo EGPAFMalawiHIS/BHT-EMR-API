@@ -7,9 +7,10 @@ class NidUtilizationReport
 
   attr_accessor :start_date, :end_date, :program_id, :report
 
-  def initialize(start_date:, end_date:, program_id:, **_kwargs)
+  def initialize(start_date:, end_date:, site_id:, program_id:, **_kwargs)
     @start_date = ActiveRecord::Base.connection.quote(start_date)
     @end_date = ActiveRecord::Base.connection.quote(end_date)
+    @site_id = site_id
     @program_id = program_id
   end
 
@@ -143,7 +144,7 @@ class NidUtilizationReport
         AND pregnant_or_breastfeeding.value_coded = #{concept_name('Yes').concept_id}
         AND pregnant_or_breastfeeding.obs_datetime BETWEEN #{start_date} AND #{end_date}
       LEFT JOIN concept_name preg_or_breast ON preg_or_breast.concept_id = pregnant_or_breastfeeding.concept_id AND preg_or_breast.voided = 0
-      WHERE p.voided = 0 AND e.encounter_datetime BETWEEN #{start_date} AND #{end_date}
+      WHERE p.voided = 0 AND e.encounter_datetime BETWEEN #{start_date} AND #{end_date} AND p.site_id = #{@site_id}
       GROUP BY p.person_id
     SQL
   end
