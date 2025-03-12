@@ -22,6 +22,7 @@ module ArtService
         @cohort_builder = CohortBuilder.new
         @cohort_struct = CohortStruct.new
         @occupation = kwargs[:occupation]
+        @cached = CachedReport.new(start_date:, end_date:, org: @type, **kwargs)
       end
 
       def build_report
@@ -44,7 +45,7 @@ module ArtService
       def defaulter_list(pepfar)
         report_type = (pepfar ? 'pepfar' : 'moh')
         ArtService::Reports::CohortBuilder.new(outcomes_definition: report_type)
-                                          .init_temporary_tables(@start_date, @end_date, @occupation)
+                                          .init_temporary_tables(@start_date, @end_date, @occupation) unless @cached.all_temp_tables_are_ok?
 
         ActiveRecord::Base.connection.select_all <<~SQL
           SELECT
