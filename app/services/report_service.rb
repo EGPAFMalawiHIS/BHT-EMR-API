@@ -40,8 +40,8 @@ class ReportService
     nil
   end
 
-  def nid_utilization_report(start_date:, end_date:)
-    NidUtilizationReport.new(start_date: start_date, end_date: end_date, program_id: @program.id).find_report
+  def nid_utilization_report(start_date:, end_date:, site_id:)
+    NidUtilizationReport.new(start_date: start_date, end_date: end_date, site_id: site_id, program_id: @program.id).find_report
   end
 
   def dashboard_stats(date)
