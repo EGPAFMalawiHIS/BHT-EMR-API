@@ -158,6 +158,9 @@ module ArtTempTablesUtils
     ActiveRecord::Base.connection.execute(
       'CREATE INDEX member_occupation_idx ON temp_cohort_members (birthdate)'
     )
+    ActiveRecord::Base.connection.execute(
+      'CREATE INDEX member_site_id_idx ON temp_cohort_members (site_id)'
+    )
   end
 
   def drop_tmp_patient_table
@@ -209,6 +212,9 @@ module ArtTempTablesUtils
     ActiveRecord::Base.connection.execute(
       'CREATE INDEX birthdate_idx ON temp_earliest_start_date (birthdate)'
     )
+    ActiveRecord::Base.connection.execute(
+      'CREATE INDEX site_id_idx ON temp_earliest_start_date (site_id)'
+    )
   end
 
   def drop_temp_register_start_date_table
@@ -232,6 +238,7 @@ module ArtTempTablesUtils
 
   def create_temp_register_start_date_table_indexes
     ActiveRecord::Base.connection.execute 'CREATE INDEX trsd_date ON temp_register_start_date (start_date)'
+    ActiveRecord::Base.connection.execute 'CREATE INDEX trsd_site_id ON temp_register_start_date (site_id)'
   end
 
   def drop_temp_other_patient_types
@@ -271,6 +278,7 @@ module ArtTempTablesUtils
 
   def create_temp_order_details_indexes
     ActiveRecord::Base.connection.execute 'CREATE INDEX tod_date ON temp_order_details (start_date)'
+    ActiveRecord::Base.connection.execute 'CREATE INDEX tod_site_id ON temp_order_details (site_id)'
   end
 
   def drop_art_start_date
@@ -294,6 +302,7 @@ module ArtTempTablesUtils
 
   def create_art_start_date_indexes
     ActiveRecord::Base.connection.execute 'CREATE INDEX tasd_date ON temp_art_start_date (value_datetime)'
+    ActiveRecord::Base.connection.execute 'CREATE INDEX tasd_site_id ON temp_art_start_date (site_id)'
   end
 
   def drop_temp_patient_tb_status
@@ -327,6 +336,10 @@ module ArtTempTablesUtils
       'ALTER TABLE temp_patient_tb_status
        ADD INDEX patient_id_tb_status_index (patient_id, tb_status)'
     )
+    ActiveRecord::Base.connection.execute(
+      'ALTER TABLE temp_patient_tb_status
+       ADD INDEX site_id_index (site_id)'
+    )
   end
 
   def drop_temp_latest_tb_status
@@ -348,6 +361,7 @@ module ArtTempTablesUtils
 
   def create_temp_latest_tb_status_indexes
     ActiveRecord::Base.connection.execute 'CREATE INDEX tlts_date ON temp_latest_tb_status(obs_datetime)'
+    ActiveRecord::Base.connection.execute 'CREATE INDEX tlts_site_id ON temp_latest_tb_status(site_id)'
   end
 
   def drop_tmp_max_adherence
@@ -368,6 +382,7 @@ module ArtTempTablesUtils
 
   def create_tmp_max_adherence_indexes
     ActiveRecord::Base.connection.execute('CREATE INDEX tma_date ON tmp_max_adherence (visit_date)')
+    ActiveRecord::Base.connection.execute('CREATE INDEX tma_site_id ON tmp_max_adherence (site_id)')
   end
 
   def drop_temp_pregnant_obs
@@ -389,6 +404,7 @@ module ArtTempTablesUtils
 
   def create_temp_pregnant_obs_indexes
     ActiveRecord::Base.connection.execute 'CREATE INDEX fre_obs_time ON temp_pregnant_obs(obs_datetime);'
+    ActiveRecord::Base.connection.execute 'CREATE INDEX fre_site_id ON temp_pregnant_obs(site_id);'
   end
 
   def drop_temp_patient_side_effects
@@ -438,6 +454,9 @@ module ArtTempTablesUtils
   def create_temp_maternal_status_indexes
     ActiveRecord::Base.connection.execute <<~SQL
       CREATE INDEX idx_maternal_status ON temp_maternal_status (patient_id, maternal_status)
+    SQL
+    ActiveRecord::Base.connection.execute <<~SQL
+      CREATE INDEX idx_maternal_site_id ON temp_maternal_status (site_id)
     SQL
   end
 
@@ -598,6 +617,9 @@ module ArtTempTablesUtils
     ActiveRecord::Base.connection.execute <<~SQL
       CREATE INDEX idx_max_min_orders#{start ? '_start' : ''} ON temp_max_drug_orders#{start ? '_start' : ''} (min_order_date)
     SQL
+    ActiveRecord::Base.connection.execute <<~SQL
+      CREATE INDEX idx_max_site_id#{start ? '_start' : ''} ON temp_max_drug_orders#{start ? '_start' : ''} (site_id)
+    SQL
   end
 
   def drop_tmp_min_auto_expirte_date(start: false)
@@ -614,6 +636,9 @@ module ArtTempTablesUtils
     SQL
     ActiveRecord::Base.connection.execute <<~SQL
       CREATE INDEX idx_min_moh#{start ? '_start' : ''} ON temp_min_auto_expire_date#{start ? '_start' : ''} (moh_defaulter_date)
+    SQL
+    ActiveRecord::Base.connection.execute <<~SQL
+      CREATE INDEX idx_min_site_id#{start ? '_start' : ''} ON temp_min_auto_expire_date#{start ? '_start' : ''} (site_id)
     SQL
   end
 
@@ -632,6 +657,9 @@ module ArtTempTablesUtils
   def create_max_patient_state_indexes(start: false)
     ActiveRecord::Base.connection.execute <<~SQL
       CREATE INDEX idx_max_patient_state#{start ? '_start' : ''} ON temp_max_patient_state#{start ? '_start' : ''} (start_date)
+    SQL
+    ActiveRecord::Base.connection.execute <<~SQL
+      CREATE INDEX idx_max_patient_site_id#{start ? '_start' : ''} ON temp_max_patient_state#{start ? '_start' : ''} (site_id)
     SQL
   end
 
