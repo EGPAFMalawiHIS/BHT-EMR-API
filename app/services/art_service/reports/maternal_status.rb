@@ -74,8 +74,8 @@ module ArtService
           FROM obs  o
           INNER JOIN temp_earliest_start_date  c ON c.patient_id = o.person_id AND c.gender = 'F'
           LEFT JOIN obs  a ON a.person_id = o.person_id AND a.obs_datetime > o.obs_datetime AND a.concept_id IN (#{pregnant_concepts.to_sql}) AND a.voided = 0
-          #{site_filter(table: 'a')}
-          #{site_filter(table: 'c')}
+          #{site_filter(table_name: 'a')}
+          #{site_filter(table_name: 'c')}
           AND a.obs_datetime >= DATE(#{ActiveRecord::Base.connection.quote(start_date)}) AND a.obs_datetime < DATE(#{ActiveRecord::Base.connection.quote(end_date)}) + INTERVAL 1 DAY
           WHERE a.obs_id is null
             AND o.obs_datetime >= DATE(#{ActiveRecord::Base.connection.quote(start_date)})
@@ -83,7 +83,7 @@ module ArtService
             AND o.voided = 0
             AND o.concept_id in (#{pregnant_concepts.to_sql})
             AND o.value_coded IN (#{yes_concepts.join(',')})
-            #{site_filter(table: 'o')}
+            #{site_filter(table_name: 'o')}
           GROUP BY o.person_id
         SQL
       end
@@ -95,8 +95,8 @@ module ArtService
           FROM obs  o
           INNER JOIN temp_earliest_start_date  c ON c.patient_id = o.person_id AND c.gender = 'F'
           LEFT JOIN obs  a ON a.person_id = o.person_id AND a.obs_datetime > o.obs_datetime AND a.concept_id IN (#{breast_feeding_concepts.to_sql}) AND a.voided = 0
-          #{site_filter(table: 'a')}
-          #{site_filter(table: 'c')}
+          #{site_filter(table_name: 'a')}
+          #{site_filter(table_name: 'c')}
           AND a.obs_datetime >= DATE(#{ActiveRecord::Base.connection.quote(start_date)}) AND a.obs_datetime < DATE(#{ActiveRecord::Base.connection.quote(end_date)}) + INTERVAL 1 DAY
           WHERE a.obs_id is null
             AND o.obs_datetime >= DATE(#{ActiveRecord::Base.connection.quote(start_date)})
@@ -105,7 +105,7 @@ module ArtService
             AND o.concept_id IN (#{breast_feeding_concepts.to_sql})
             AND o.value_coded IN (#{yes_concepts.join(',')})
             AND o.person_id NOT IN (SELECT c.patient_id FROM temp_maternal_status  c)
-            #{site_filter(table: 'o')}
+            #{site_filter(table_name: 'o')}
           GROUP BY o.person_id
         SQL
       end
