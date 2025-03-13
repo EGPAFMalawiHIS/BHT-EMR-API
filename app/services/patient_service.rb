@@ -6,7 +6,7 @@ class PatientService
 
   def create_patient(program, person, malawi_national_id = nil)
     ActiveRecord::Base.transaction do
-      patient = Patient.create(patient_id: person.id)
+      patient = Patient.create(patient_id: person.id, site_id: Location.site_id)
       unless patient.errors.empty?
         raise "Could not create patient for person ##{person.id} due to #{patient.errors.as_json}"
       end
