@@ -15,6 +15,7 @@ module ArtService
         @start_of_month = @start_date.beginning_of_month
         @end_of_month = @end_date.end_of_month
         @occupation = kwargs[:occupation]
+        @site_id = kwargs[:site_id]
         @dsd = kwargs[:dsd]
       end
 
@@ -73,14 +74,14 @@ module ArtService
       def fetch_initiated_on_art
         ActiveRecord::Base.connection.select_all <<~SQL
           SELECT patient_id, age_group, gender FROM temp_initiated_on_art
-          WHERE art_start_date >= DATE('#{start_of_month}')
+          WHERE art_start_date >= DATE('#{start_of_month}') AND site_id = #{@site_id}
         SQL
       end
 
       def fetch_initiated_on_tpt
         result = ActiveRecord::Base.connection.select_all <<~SQL
           SELECT * FROM temp_initiated_on_tpt
-          WHERE start_date >= DATE('#{start_of_month}')
+          WHERE start_date >= DATE('#{start_of_month}') AND site_id = #{@site_id}
         SQL
         # convert to array of hashes
         result.to_a
@@ -89,7 +90,7 @@ module ArtService
       def initiated_on_art
         ActiveRecord::Base.connection.execute <<~SQL
           CREATE TABLE temp_initiated_on_art
-          SELECT pop.patient_id, coalesce(o.value_datetime, min(art_order.start_date)) art_start_date, p.gender, disaggregated_age_group(p.birthdate, DATE('#{raw_end_date}')) age_group
+          SELECT pop.patient_id, coalesce(o.value_datetime, min(art_order.start_date)) art_start_date, p.gender, disaggregated_age_group(p.birthdate, DATE('#{raw_end_date}')) age_group, pop.site_id
           FROM patient_program pop
           INNER JOIN person p ON p.person_id = pop.patient_id AND p.voided = 0
           INNER JOIN patient_state pos ON pos.patient_program_id = pop.patient_program_id AND pos.voided = 0 AND pos.state = 7 -- ON ART
@@ -121,6 +122,7 @@ module ArtService
               AND o.start_date < DATE('#{start_of_month}')
             GROUP BY o.patient_id
           )
+          AND pop.site_id = #{@site_id}
           AND pop.program_id = 1 #{%w[Military Civilian].include?(@occupation) ? 'AND' : ''} #{occupation_filter(occupation: @occupation, field_name: 'value', table_name: 'a', include_clause: false)}
           GROUP BY pop.patient_id
         SQL
@@ -130,7 +132,7 @@ module ArtService
         ActiveRecord::Base.connection.execute <<~SQL
           CREATE TABLE temp_initiated_on_tpt
           SELECT
-            pop.patient_id,
+            pop.patient_id, pop.site_id,
             coalesce(tpt_transfer_in_obs.value_datetime, min(tpt_order.start_date)) start_date,
             p.gender, disaggregated_age_group(p.birthdate, DATE('#{raw_end_date}')) age_group,
             patient_outcome(p.person_id, DATE('#{@raw_end_date}')) AS outcome,
@@ -190,6 +192,7 @@ module ArtService
               AND o.start_date < DATE('#{start_of_month}')
             GROUP BY o.patient_id
           )
+          AND pop.site_id = #{@site_id}
           AND pop.program_id = 1 #{%w[Military Civilian].include?(@occupation) ? 'AND' : ''} #{occupation_filter(occupation: @occupation, field_name: 'value', table_name: 'a', include_clause: false)}
           GROUP BY pop.patient_id
         SQL

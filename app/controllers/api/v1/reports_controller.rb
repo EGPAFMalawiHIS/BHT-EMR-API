@@ -184,7 +184,7 @@ module Api
       end
 
       def moh_tpt
-        render json: service.moh_tpt(params[:start_date], params[:end_date], occupation: params[:occupation], dsd: params[:dsd])
+        render json: service.moh_tpt(params[:start_date], params[:end_date], occupation: params[:occupation], dsd: params[:dsd], site_id: params[:site_id])
       end
 
       def ipt_coverage
