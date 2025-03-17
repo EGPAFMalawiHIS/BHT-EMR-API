@@ -184,7 +184,6 @@ module ArtService
               AND pregnant_or_breastfeeding.value_coded = #{concept_name('Yes').concept_id}
               #{site_filter(table_name: 'pregnant_or_breastfeeding')}
             LEFT JOIN concept_name preg_or_breast ON preg_or_breast.concept_id = pregnant_or_breastfeeding.concept_id AND preg_or_breast.voided = 0
-              #{site_filter(table_name: 'preg_or_breast')}
             WHERE e.date_enrolled <= '#{end_date}' AND e.date_enrolled >= '#{start_date}'
             #{site_filter(table_name: 'e')}
             GROUP BY e.patient_id
