@@ -8,6 +8,7 @@ module CxcaService
         attr_reader :start_date, :end_date, :report
 
         include Utils
+        include CommonSqlQueryUtils
 
         CxCa_PROGRAM = Program.find_by_name 'CxCa program'
 
@@ -56,9 +57,11 @@ module CxcaService
                 LEFT JOIN obs reason_for_visit ON reason_for_visit.person_id = person.person_id
                 AND reason_for_visit.voided = 0
                 AND reason_for_visit.concept_id = #{concept('Reason for visit').concept_id}
+                #{site_filter(table_name: 'reason_for_visit')}
                 LEFT JOIN obs treatment ON treatment.person_id = person.person_id
                 AND treatment.voided = 0
                 AND treatment.concept_id = #{concept('Treatment').concept_id}
+                #{site_filter(table_name: 'treatment')}
                 INNER JOIN concept_name reason_name ON reason_name.concept_id = reason_for_visit.value_coded
                 AND reason_name.voided = 0
               SQL

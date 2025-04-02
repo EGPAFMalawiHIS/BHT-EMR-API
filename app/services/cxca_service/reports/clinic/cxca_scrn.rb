@@ -4,8 +4,10 @@ module CxcaService
   module Reports
     module Clinic
       class CxcaScrn
+        
         attr_reader :start_date, :end_date, :report, :screening_method
-
+        
+        include CommonSqlQueryUtils
         include Utils
 
         CxCa_PROGRAM = 'CxCa program'
@@ -74,6 +76,7 @@ module CxcaService
               SELECT e.patient_id, DATE(MAX(e.encounter_datetime)) AS last_visit_date
               FROM encounter e
               WHERE e.program_id = #{program(CxCa_PROGRAM).id}
+                #{site_filter(table_name: 'e')}
                 AND e.encounter_datetime >= '#{@start_date}'
                 AND e.encounter_datetime <= '#{@end_date}'
                 AND e.voided = 0
@@ -83,10 +86,12 @@ module CxcaService
               AND reason_for_visit.voided = 0
               AND reason_for_visit.concept_id = #{concept('Reason for visit').concept_id}
               AND DATE(reason_for_visit.obs_datetime) = last_visit.last_visit_date
+              #{site_filter(table_name: 'reason_for_visit')}
             LEFT JOIN obs treatment ON treatment.person_id = last_visit.patient_id
               AND treatment.voided = 0
               AND treatment.concept_id = #{concept('Screening results').concept_id}
               AND DATE(treatment.obs_datetime) = last_visit.last_visit_date
+              #{site_filter(table_name: 'treatment')}
             LEFT JOIN concept_name reason_name ON reason_name.concept_id = reason_for_visit.value_coded
               AND reason_name.voided = 0
             LEFT JOIN concept_name screening_name ON screening_name.concept_id = treatment.value_coded
