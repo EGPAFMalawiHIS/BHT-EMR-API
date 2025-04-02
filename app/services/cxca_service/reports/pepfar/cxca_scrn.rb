@@ -8,6 +8,7 @@ module CxcaService
 
         include Utils
         include ModelUtils
+        include CommonSqlQueryUtils
 
         CxCa_PROGRAM = 'CxCa program'
 
@@ -74,16 +75,19 @@ module CxcaService
                 AND e.encounter_datetime >= '#{@start_date}'
                 AND e.encounter_datetime <= '#{@end_date}'
                 AND e.voided = 0
+                #{site_filter(table_name: 'e')}
               GROUP BY e.patient_id
             ) AS last_visit ON last_visit.patient_id = p.person_id
             LEFT JOIN obs reason_for_visit ON reason_for_visit.person_id = last_visit.patient_id
               AND reason_for_visit.voided = 0
               AND reason_for_visit.concept_id = #{concept('Reason for visit').concept_id}
               AND DATE(reason_for_visit.obs_datetime) = last_visit.last_visit_date
+              #{site_filter(table_name: 'reason_for_visit')}
             LEFT JOIN obs treatment ON treatment.person_id = last_visit.patient_id
               AND treatment.voided = 0
               AND treatment.concept_id = #{concept('Screening results').concept_id}
               AND DATE(treatment.obs_datetime) = last_visit.last_visit_date
+              #{site_filter(table_name: 'treatment')}
             LEFT JOIN concept_name reason_name ON reason_name.concept_id = reason_for_visit.value_coded
               AND reason_name.voided = 0
             LEFT JOIN concept_name screening_name ON screening_name.concept_id = treatment.value_coded
@@ -92,9 +96,12 @@ module CxcaService
               SELECT o.patient_id
               FROM orders o
               INNER JOIN drug_order d ON d.order_id = o.order_id AND d.drug_inventory_id IN (SELECT drug_id FROM arv_drug) AND d.quantity > 0
+              #{site_filter(table_name: 'd')}
+              #{site_filter(table_name: 'o')}
               GROUP BY o.patient_id
             ) in_art ON in_art.patient_id = p.person_id
             WHERE p.voided = 0 AND LEFT(p.gender, 1) = 'F'
+            #{site_filter(table_name: 'p')}
             GROUP BY p.person_id
           SQL
         end

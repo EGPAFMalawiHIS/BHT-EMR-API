@@ -5,6 +5,7 @@ module CxcaService
     module Pepfar
       # class providing all major Cervical Cancer quetions
       class CcAllQuestions
+        include CommonSqlQueryUtils
         attr_reader :response
 
         AGE_GROUPS = ['15-19', '20-24', '25-29', '30-34', '35-39', '40-44', '45-49', '50+', 'Unknown Age',
@@ -122,6 +123,7 @@ module CxcaService
             INNER JOIN obs o ON o.encounter_id = e.encounter_id AND o.voided = 0 AND o.concept_id = #{ConceptName.find_by_name('Reason for visit').concept_id}
             INNER JOIN person p ON p.person_id = e.patient_id AND p.voided = 0
             WHERE e.voided = 0 AND e.encounter_type = #{EncounterType.find_by_name('CxCa test').id}
+            #{site_filter(table_name: 'e')}
           SQL
         end
 
@@ -134,6 +136,7 @@ module CxcaService
             INNER JOIN obs o ON o.encounter_id = e.encounter_id AND o.voided = 0 AND o.concept_id = #{ConceptName.find_by_name('Screening results').concept_id} AND o.value_coded IS NOT NULL
             INNER JOIN person p ON p.person_id = e.patient_id AND p.voided = 0
             WHERE e.voided = 0 AND e.encounter_type = #{EncounterType.find_by_name('CxCa screening result').id}
+            #{site_filter(table_name: 'e')}
           SQL
         end
 
@@ -147,6 +150,7 @@ module CxcaService
             AND o.value_coded IN (#{ConceptName.where(name: %w[Cryotherapy Thermocoagulation LEEP]).select(:concept_id).to_sql})
             INNER JOIN person p ON p.person_id = e.patient_id AND p.voided = 0
             WHERE e.voided = 0 AND e.encounter_type = #{EncounterType.find_by_name('CxCa treatment').id}
+            #{site_filter(table_name: 'e')}
           SQL
         end
 
@@ -156,6 +160,7 @@ module CxcaService
             WHERE voided = 0 AND encounter_type = #{EncounterType.find_by_name(encounter_type).id}
             AND encounter_datetime BETWEEN '#{@start_date}' AND '#{@end_date}'
             AND patient_id IN (#{patients_in_art_program})
+            #{site_filter(table_name: 'encounter')}
             GROUP BY patient_id
           TEXT
         end
@@ -167,6 +172,7 @@ module CxcaService
             SELECT pp.patient_id FROM patient_program pp
             INNER JOIN person p ON pp.patient_id = p.person_id and p.voided = 0
             WHERE p.gender = 'F' AND pp.program_id = #{Program.find_by_name('HIV Program').id} AND pp.voided = 0
+            #{site_filter(table_name: 'pp')}
           SQL
           @patients_in_art_program = result.map { |patient| patient['patient_id'] }.push(0).join(',')
         end

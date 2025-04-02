@@ -4,6 +4,7 @@ module CxcaService
   module Reports
     module Moh
       class ReferralReasons
+        include CommonSqlQueryUtils
         def initialize(start_date:, end_date:, **_kwargs)
           @start_date = start_date.strftime('%Y-%m-%d 00:00:00')
           @end_date = end_date.strftime('%Y-%m-%d 23:59:59')
@@ -22,6 +23,7 @@ module CxcaService
 					AND obs_datetime BETWEEN ? AND ?", referral_reason.concept_id,
                                   %w[F Female], @start_date, @end_date)\
                            .joins("INNER JOIN person p ON p.person_id = obs.person_id
+                           #{site_filter(table_name: 'p')}
 					INNER JOIN concept_name m ON m.concept_id = obs.value_coded")\
                            .group('p.person_id, DATE(obs_datetime)').select("p.person_id, p.birthdate, m.concept_id, m.name, obs.obs_datetime,
 					TIMESTAMPDIFF(year, p.birthdate, DATE(obs_datetime)) age")\

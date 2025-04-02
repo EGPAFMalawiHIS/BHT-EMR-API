@@ -7,6 +7,7 @@ module CxcaService
       # rubocop:disable Metrics/ClassLength
       class ScreenedForCxca
         include ModelUtils
+        include CommonSqlQueryUtils
         attr_accessor :start_date, :end_date, :report
 
         SCREENING_METHOD = 'CxCa screening method'
@@ -328,6 +329,7 @@ module CxcaService
               AND e.encounter_datetime <= '#{@end_date}'
               AND e.encounter_type = #{encounter_type(CXCA_TEST).id}
               AND e.voided = 0
+              #{site_filter(table_name: 'e')}
             LEFT JOIN (
               -- we need to check whether the client has received arv treatment on the facility before
               -- since the system does question the client when they are coming form ART
@@ -335,6 +337,8 @@ module CxcaService
               FROM orders o
               INNER JOIN drug_order do ON do.order_id = o.order_id AND do.drug_inventory_id IN (SELECT drug_id FROM arv_drug) AND do.quantity > 0
               WHERE o.voided = 0 AND o.start_date <= '#{@end_date}'
+              #{site_filter(table_name: 'o')}
+              #{site_filter(table_name: 'do')}
               GROUP BY o.patient_id
             ) client_on_art ON client_on_art.patient_id = p.person_id AND client_on_art.client_on_art = 10017 -- 10017 is the concept_id for Positive on ART
             -- we need to get the HIV test date of the client
@@ -347,25 +351,30 @@ module CxcaService
                 WHERE concept_id = #{concept(HIV_TEST_DATE).concept_id}
                   AND voided = 0
                   AND obs_datetime <= '#{@end_date}'
+                  #{site_filter(table_name: 'o')}
                 GROUP BY person_id
               ) latest_hiv_test_date ON latest_hiv_test_date.person_id = o.person_id AND latest_hiv_test_date.obs_datetime = o.obs_datetime
               WHERE o.concept_id = #{concept(HIV_TEST_DATE).concept_id} AND o.voided = 0
+              #{site_filter(table_name: 'o')}
             ) hiv_test_date ON hiv_test_date.person_id = p.person_id
             LEFT JOIN obs screened_method ON screened_method.person_id = p.person_id
               AND screened_method.concept_id = #{concept(SCREENING_METHOD).concept_id}
               AND screened_method.voided = 0
               AND screened_method.obs_datetime >= '#{@start_date}'
               AND screened_method.obs_datetime <= '#{@end_date}'
+              #{site_filter(table_name: 'screened_method')}
             LEFT JOIN obs screened_result ON screened_result.person_id = p.person_id
             	AND screened_result.concept_id = #{concept(SCREENING_RESULT).concept_id}
             	AND screened_result.voided = 0
               AND screened_result.obs_datetime >= '#{@start_date}'
               AND screened_result.obs_datetime <= '#{@end_date}'
+              #{site_filter(table_name: 'screened_result')}
             LEFT JOIN obs referral_reason ON referral_reason.person_id = p.person_id
             	AND referral_reason.concept_id = #{concept(REFFERAL_REASONS).concept_id}
             	AND referral_reason.voided = 0
               AND referral_reason.obs_datetime >= '#{@start_date}'
               AND referral_reason.obs_datetime <= '#{@end_date}'
+              #{site_filter(table_name: 'referral_reason')}
             -- we need to get the latest hiv status of the client
             LEFT JOIN (
               SELECT o.person_id, o.value_coded
@@ -376,20 +385,24 @@ module CxcaService
                 WHERE concept_id = #{concept(HIV_STATUS).concept_id}
                   AND voided = 0
                   AND obs_datetime <= '#{@end_date}'
+                  #{site_filter(table_name: 'o')}
                 GROUP BY person_id
               ) latest_hiv_status ON latest_hiv_status.person_id = o.person_id AND latest_hiv_status.obs_datetime = o.obs_datetime
               WHERE o.concept_id = #{concept(HIV_STATUS).concept_id} AND o.voided = 0
+              #{site_filter(table_name: 'o')}
             ) hiv_status ON hiv_status.person_id = p.person_id
             LEFT JOIN obs dot_option ON dot_option.person_id = p.person_id
             	AND dot_option.concept_id = #{concept(DOT_OPTION).concept_id}
             	AND dot_option.voided = 0
               AND dot_option.obs_datetime >= '#{@start_date}'
               AND dot_option.obs_datetime <= '#{@end_date}'
+              #{site_filter(table_name: 'dot_option')}
             LEFT JOIN obs screening_asesment ON screening_asesment.person_id = p.person_id
             	AND screening_asesment.concept_id = #{concept(SCREENING_ASSESMENT).concept_id}
             	AND screening_asesment.voided = 0
               AND screening_asesment.obs_datetime >= '#{@start_date}'
               AND screening_asesment.obs_datetime <= '#{@end_date}'
+              #{site_filter(table_name: 'screening_asesment')}
             LEFT JOIN (
               SELECT e.patient_id
               FROM encounter e
@@ -402,6 +415,8 @@ module CxcaService
                 AND e.encounter_datetime >= '#{@start_date}'
                 AND e.encounter_datetime <= '#{@end_date}'
                 AND e.voided = 0
+                #{site_filter(table_name: 'e')}
+                #{site_filter(table_name: 'o')}
               GROUP BY e.patient_id
             ) cancer_suspect ON cancer_suspect.patient_id = p.person_id
             LEFT JOIN obs tx_option ON tx_option.person_id = p.person_id
@@ -409,6 +424,7 @@ module CxcaService
             	AND tx_option.voided = 0
               AND tx_option.obs_datetime >= '#{@start_date}'
               AND tx_option.obs_datetime <= '#{@end_date}'
+              #{site_filter(table_name: 'tx_option')}
             LEFT JOIN (
               SELECT e.patient_id, family_planning.value_coded
               FROM encounter e
@@ -421,6 +437,7 @@ module CxcaService
                 AND e.encounter_datetime >= '#{@start_date}'
                 AND e.encounter_datetime <= '#{@end_date}'
                 AND e.voided = 0
+                #{site_filter(table_name: 'e')}
               GROUP BY e.patient_id
             ) family_planning ON family_planning.patient_id = p.person_id
             LEFT JOIN obs outcome ON outcome.person_id = p.person_id
@@ -428,12 +445,14 @@ module CxcaService
             	AND outcome.voided = 0
               AND outcome.obs_datetime >= '#{@start_date}'
               AND outcome.obs_datetime <= '#{@end_date}'
+              #{site_filter(table_name: 'outcome')}
             INNER JOIN obs reason_for_visit ON reason_for_visit.person_id = p.person_id
               AND reason_for_visit.encounter_id = e.encounter_id
             	AND reason_for_visit.voided = 0
             	AND reason_for_visit.concept_id = #{concept(REASON_FOR_VISIT).concept_id}
               AND reason_for_visit.obs_datetime >= '#{@start_date}'
               AND reason_for_visit.obs_datetime <= '#{@end_date}'
+              #{site_filter(table_name: 'reason_for_visit')}
             WHERE p.voided = 0 AND LEFT(p.gender, 1) = 'F'
             GROUP BY p.person_id
           SQL

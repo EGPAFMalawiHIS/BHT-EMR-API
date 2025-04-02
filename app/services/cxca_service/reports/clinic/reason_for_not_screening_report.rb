@@ -8,6 +8,7 @@ module CxcaService
       class ReasonForNotScreeningReport
         include Utils
         include ModelUtils
+        include CommonSqlQueryUtils
 
         def initialize(start_date:, end_date:, **_kwargs)
           @start_date = start_date.to_date.beginning_of_day.strftime('%Y-%m-%d %H:%M:%S')
@@ -70,6 +71,7 @@ module CxcaService
             AND (encounter.program_id = #{cxca_program} OR encounter.program_id = #{art_program})
             AND encounter.encounter_datetime >= '#{@start_date}'
             AND encounter.encounter_datetime <= '#{@end_date}'
+            #{site_filter(table_name: 'encounter')}
             INNER JOIN obs reason ON reason.encounter_id = encounter.encounter_id
             AND reason.voided = 0
             AND (reason.concept_id = #{concept('Reason for NOT offering CxCa').concept_id} 

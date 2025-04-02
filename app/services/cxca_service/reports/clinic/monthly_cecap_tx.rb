@@ -4,11 +4,13 @@ module CxcaService
   module Reports
     module Clinic
       class MonthlyCecapTx
-        include Utils
-
+        
         attr_accessor :start_date, :end_date, :report
-
+        
         CxCa_PROGRAM = Program.find_by_name 'CxCa program'
+        
+        include Utils
+        include CommonSqlQueryUtils
 
         TX_GROUPS = {
           first_time_screened: ['initial screening', 'referral'],
@@ -104,24 +106,29 @@ module CxcaService
                 LEFT JOIN obs reason_for_visit ON reason_for_visit.person_id = person.person_id
                 AND reason_for_visit.voided = 0
                 AND reason_for_visit.concept_id = #{concept('Reason for visit').concept_id}
+                #{site_filter(table_name: 'reason_for_visit')}
                 LEFT JOIN concept_name reason_name ON reason_name.concept_id = reason_for_visit.value_coded
                 AND reason_name.voided = 0
                 LEFT JOIN obs via_results ON via_results.person_id = person.person_id
                 AND via_results.voided = 0
                 AND via_results.concept_id = 9514
+                #{site_filter(table_name: 'via_results')}
                 LEFT JOIN concept_name result_name ON result_name.concept_id = via_results.value_coded
                 AND result_name.voided = 0
                 LEFT JOIN obs treatment_option ON treatment_option.person_id = person.person_id
                 AND treatment_option.voided = 0
                 AND treatment_option.concept_id = #{concept('Directly observed treatment option').concept_id}
+                #{site_filter(table_name: 'treatment_option')}
                 LEFT JOIN concept_name tx_option_name ON tx_option_name.concept_id = treatment_option.value_coded
                 AND treatment_option.voided = 0
                 LEFT JOIN obs treatment ON treatment.person_id = person.person_id
                 AND treatment.voided = 0
                 AND treatment.concept_id = #{concept('Treatment').concept_id}
+                #{site_filter(table_name: 'treatment')}
                 LEFT JOIN obs screening_results ON screening_results.person_id = person.person_id
                 AND screening_results.voided = 0
                 AND screening_results.concept_id = #{concept('Screening results').concept_id}
+                #{site_filter(table_name: 'screening_results')}
                 LEFT JOIN concept_name screening_results_name ON screening_results_name.concept_id = screening_results.value_coded
                 AND screening_results_name.voided = 0
               SQL

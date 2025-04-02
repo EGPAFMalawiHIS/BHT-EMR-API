@@ -4,6 +4,8 @@ module CxcaService
   module Reports
     module Clinic
       class BookedClientsFromArtRawData
+        include CommonSqlQueryUtils
+
         def initialize(start_date:, end_date:, **_kwargs)
           @start_date = start_date.strftime('%Y-%m-%d 00:00:00')
           @end_date = end_date.strftime('%Y-%m-%d 23:59:59')
@@ -24,11 +26,15 @@ module CxcaService
           people = Person.joins("LEFT JOIN obs ON person.person_id = obs.person_id
 						AND obs.concept_id = #{reason_for_visit.concept_id}
 						AND obs.obs_datetime BETWEEN '#{@start_date}' AND '#{@end_date}' AND obs.voided = 0
+            #{site_filter(table_name: 'obs')}
 						LEFT JOIN patient_identifier i ON i.patient_id = person.person_id
 						AND i.voided = 0 AND identifier_type = 3
+            #{site_filter(table_name: 'i')}
 						LEFT JOIN person_name names ON names.person_id = person.person_id AND names.voided = 0
+            #{site_filter(table_name: 'names')}
 						INNER JOIN (SELECT o.* FROM obs o INNER JOIN encounter e ON e.encounter_id = o.encounter_id
 						WHERE o.concept_id = #{offer_cxca.concept_id} AND o.obs_datetime
+            #{site_filter(table_name: 'e')}
 						BETWEEN '#{@start_date}' AND '#{@end_date}' AND o.voided = 0
 						AND e.program_id = #{hiv_program_id} AND o.value_coded = #{offer_cxca_yes.concept_id})
 						cxca ON cxca.person_id = person.person_id").group('person.person_id')\
