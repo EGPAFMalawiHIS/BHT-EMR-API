@@ -351,7 +351,7 @@ module CxcaService
                 WHERE concept_id = #{concept(HIV_TEST_DATE).concept_id}
                   AND voided = 0
                   AND obs_datetime <= '#{@end_date}'
-                  #{site_filter(table_name: 'o')}
+                  #{site_filter(table_name: 'obs')}
                 GROUP BY person_id
               ) latest_hiv_test_date ON latest_hiv_test_date.person_id = o.person_id AND latest_hiv_test_date.obs_datetime = o.obs_datetime
               WHERE o.concept_id = #{concept(HIV_TEST_DATE).concept_id} AND o.voided = 0
@@ -385,7 +385,7 @@ module CxcaService
                 WHERE concept_id = #{concept(HIV_STATUS).concept_id}
                   AND voided = 0
                   AND obs_datetime <= '#{@end_date}'
-                  #{site_filter(table_name: 'o')}
+                  #{site_filter(table_name: 'obs')}
                 GROUP BY person_id
               ) latest_hiv_status ON latest_hiv_status.person_id = o.person_id AND latest_hiv_status.obs_datetime = o.obs_datetime
               WHERE o.concept_id = #{concept(HIV_STATUS).concept_id} AND o.voided = 0
