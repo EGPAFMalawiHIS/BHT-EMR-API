@@ -49,6 +49,8 @@ gem 'emr_ohsp_interface', '~> 3.0.0'
 
 gem 'his_emr_api_lab', git: 'https://github.com/EGPAFMalawiHIS/his_emr_api_lab.git', branch: 'streaming'
 
+gem 'his_emr_api_lab', '2.0.5.pre.central.pre.emr'
+
 # gem 'his_emr_api_radiology', '~> 1.0.9'
 
 gem 'parallel', '~> 1.20.1'
