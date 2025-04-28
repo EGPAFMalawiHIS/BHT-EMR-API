@@ -11,6 +11,98 @@ unless connection.column_exists?(:concept_name, :locale_preferred)
   connection.add_column :concept_name, :locale_preferred, :string, limit: 4
 end
 
+# Recreate Patient Identifier table
+ActiveRecord::Base.connection.execute(<<~SQL)
+  CREATE TABLE IF NOT EXISTS `patient_identifier_main` (
+    `patient_identifier_id` int NOT NULL AUTO_INCREMENT,
+    `patient_id` int NOT NULL DEFAULT '0',
+    `identifier` varchar(50) NOT NULL DEFAULT '',
+    `identifier_type` int NOT NULL DEFAULT '0',
+    `preferred` smallint NOT NULL DEFAULT '0',
+    `location_id` int NOT NULL DEFAULT '0',
+    `creator` int NOT NULL DEFAULT '0',
+    `date_created` datetime NOT NULL DEFAULT '1900-01-01 00:00:00',
+    `voided` smallint NOT NULL DEFAULT '0',
+    `voided_by` int DEFAULT NULL,
+    `date_voided` datetime DEFAULT NULL,
+    `void_reason` varchar(255) DEFAULT NULL,
+    `uuid` char(38) NOT NULL,
+    PRIMARY KEY (`patient_identifier_id`),
+    UNIQUE KEY `patient_identifier_uuid_index` (`uuid`),
+    KEY `identifier_creator` (`creator`),
+    KEY `identifier_voider` (`voided_by`),
+    KEY `identifier_location` (`location_id`),
+    KEY `identifier_name` (`identifier`),
+    KEY `idx_patient_identifier_patient` (`patient_id`)
+  ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb3;
+SQL
+
+puts "Starting data migration from OldPatient to the new table..."
+
+new_table_name = 'patient_identifier_main' # Replace with the actual name of your new table
+
+ActiveRecord::Base.connection.exec_query("SELECT * FROM patient_identifier").each do |old_patient|
+  next if ActiveRecord::Base.connection.select_one("SELECT * FROM patient_identifier_main where patient_id = #{old_patient['patient_id']} AND 
+                                                    identifier = '#{old_patient['identifier']}' AND identifier_type = #{old_patient['identifier_type']}")
+
+  sql = "INSERT INTO #{new_table_name} (
+           voided_by, voided, void_reason, uuid, preferred,
+           patient_id, location_id, identifier_type, identifier,
+           date_voided, date_created, creator
+         ) VALUES (
+           ?, ?, ?, ?, ?,
+           ?, ?, ?, ?,
+           ?, ?, ?
+         )
+        "
+
+  ActiveRecord::Base.connection.execute(
+    ActiveRecord::Base.sanitize_sql_array(
+      [
+        sql,
+        old_patient['voided_by'],
+        old_patient['voided'],
+        old_patient['void_reason'],
+        SecureRandom.uuid,
+        old_patient['preferred'],
+        old_patient['patient_id'],
+        old_patient['location_id'],
+        old_patient['identifier_type'],
+        old_patient['identifier'],
+        old_patient['date_voided'],
+        old_patient['date_created'],
+        old_patient['creator']
+      ]
+    )
+  )
+end
+
+puts "Data migration to #{new_table_name} complete."
+
+ActiveRecord::Base.connection.drop_table('patient_identifier')
+puts "Old table 'your_old_table_name' has been dropped."
+
+ActiveRecord::Base.connection.rename_table('patient_identifier_main', 'patient_identifier')
+puts "Renamed table 'patient_identifier_main' to 'patient_identifier'."
+
+ActiveRecord::Base.connection.execute(<<-SQL)
+  ALTER TABLE patient_identifier
+  ADD CONSTRAINT `defines_identifier_type`
+    FOREIGN KEY (`identifier_type`)
+    REFERENCES `patient_identifier_type` (`patient_identifier_type_id`),
+  ADD CONSTRAINT `identifier_creator`
+    FOREIGN KEY (`creator`)
+    REFERENCES `users` (`user_id`),
+  ADD CONSTRAINT `identifier_voider`
+    FOREIGN KEY (`voided_by`)
+    REFERENCES `users` (`user_id`),
+  ADD CONSTRAINT `identifies_patient`
+    FOREIGN KEY (`patient_id`)
+    REFERENCES `patient` (`patient_id`),
+  ADD CONSTRAINT `patient_identifier_ibfk_2`
+    FOREIGN KEY (`location_id`)
+    REFERENCES `location` (`location_id`);
+SQL
 
 migrations_to_skip = %w[
   20091009094538
