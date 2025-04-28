@@ -11,6 +11,15 @@ unless connection.column_exists?(:concept_name, :locale_preferred)
   connection.add_column :concept_name, :locale_preferred, :string, limit: 4
 end
 
+unless connection.column_exists?(:patient_program, :location_id)
+  connection.add_column :patient_program, :location_id, :integer
+end
+
+unless connection.column_exists?(:obs, :location_id)
+  connection.add_column :obs, :location_id, :integer
+end
+
+
 # Recreate Patient Identifier table
 ActiveRecord::Base.connection.execute(<<~SQL)
   CREATE TABLE IF NOT EXISTS `patient_identifier_main` (
