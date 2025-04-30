@@ -19,6 +19,7 @@ unless connection.column_exists?(:obs, :location_id)
   connection.add_column :obs, :location_id, :integer
 end
 
+connection.change_column :obs, :location_id, :integer, null: true
 
 # Recreate Patient Identifier table
 ActiveRecord::Base.connection.execute(<<~SQL)
