@@ -19,7 +19,7 @@ unless connection.column_exists?(:obs, :location_id)
   connection.add_column :obs, :location_id, :integer
 end
 
-connection.change_column :obs, :location_id, :integer, null: true
+connection.change_column :obs, :location_id, :integer, default: nil, null: true
 
 # Recreate Patient Identifier table
 ActiveRecord::Base.connection.execute(<<~SQL)
@@ -47,50 +47,57 @@ ActiveRecord::Base.connection.execute(<<~SQL)
   ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb3;
 SQL
 
-puts "Starting data migration from OldPatient to the new table..."
+puts 'Starting data migration from OldPatient to the new table...'
 
 new_table_name = 'patient_identifier_main' # Replace with the actual name of your new table
 
-ActiveRecord::Base.connection.exec_query("SELECT * FROM patient_identifier").each do |old_patient|
-  next if ActiveRecord::Base.connection.select_one("SELECT * FROM patient_identifier_main where patient_id = #{old_patient['patient_id']} AND 
-                                                    identifier = '#{old_patient['identifier']}' AND identifier_type = #{old_patient['identifier_type']}")
+new_rows = []
+existing_rows = ActiveRecord::Base.connection.exec_query('SELECT patient_id, identifier, identifier_type FROM patient_identifier_main').to_a
+existing_set = existing_rows.map { |r| [r['patient_id'], r['identifier'], r['identifier_type']] }.to_set
 
-  sql = "INSERT INTO #{new_table_name} (
-           voided_by, voided, void_reason, uuid, preferred,
-           patient_id, location_id, identifier_type, identifier,
-           date_voided, date_created, creator
-         ) VALUES (
-           ?, ?, ?, ?, ?,
-           ?, ?, ?, ?,
-           ?, ?, ?
-         )
-        "
+old_patients = ActiveRecord::Base.connection.exec_query('SELECT * FROM patient_identifier')
 
-  ActiveRecord::Base.connection.execute(
-    ActiveRecord::Base.sanitize_sql_array(
-      [
-        sql,
-        old_patient['voided_by'],
-        old_patient['voided'],
-        old_patient['void_reason'],
-        SecureRandom.uuid,
-        old_patient['preferred'],
-        old_patient['patient_id'],
-        old_patient['location_id'],
-        old_patient['identifier_type'],
-        old_patient['identifier'],
-        old_patient['date_voided'],
-        old_patient['date_created'],
-        old_patient['creator']
-      ]
-    )
-  )
+old_patients.each do |old_patient|
+  key = [old_patient['patient_id'], old_patient['identifier'], old_patient['identifier_type']]
+  next if existing_set.include?(key)
+
+  new_rows << [
+    old_patient['voided_by'],
+    old_patient['voided'],
+    old_patient['void_reason'],
+    SecureRandom.uuid,
+    old_patient['preferred'],
+    old_patient['patient_id'],
+    old_patient['location_id'],
+    old_patient['identifier_type'],
+    old_patient['identifier'],
+    old_patient['date_voided'],
+    old_patient['date_created'],
+    old_patient['creator']
+  ]
 end
 
+unless new_rows.empty?
+  values_sql = new_rows.map do
+    "(#{(['?'] * 12).join(', ')})"
+  end.join(', ')
+
+  sql = <<~SQL
+    INSERT INTO #{new_table_name} (
+      voided_by, voided, void_reason, uuid, preferred,
+      patient_id, location_id, identifier_type, identifier,
+      date_voided, date_created, creator
+    ) VALUES #{values_sql}
+  SQL
+
+  ActiveRecord::Base.connection.exec_insert(
+    ActiveRecord::Base.send(:sanitize_sql_array, [sql, *new_rows.flatten])
+  )
+end
 puts "Data migration to #{new_table_name} complete."
 
 ActiveRecord::Base.connection.drop_table('patient_identifier')
-puts "Old table 'your_old_table_name' has been dropped."
+puts "Old table 'patient_identifier' has been dropped."
 
 ActiveRecord::Base.connection.rename_table('patient_identifier_main', 'patient_identifier')
 puts "Renamed table 'patient_identifier_main' to 'patient_identifier'."
