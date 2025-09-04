@@ -19,7 +19,10 @@ module ArtService
       'MISSING VL RESULTS' => 'missing_vl_results',
       'DIFFERENT PREGNANCY VALUE ON SAME DATE' => 'different_pregnancy_value_on_same_date',
       'MISSING ART START DATE' => 'missing_start_date',
-      'MULTIPLE OPEN STATES' => 'multiple_open_states'
+      'MULTIPLE OPEN STATES' => 'multiple_open_states',
+      'ACTIVE CLIENTS WITH ADVERSE OUTCOMES' => 'active_clients_with_adverse_outcomes',
+      'ART START DATE BEFORE DATE OF BIRTH' => 'art_start_date_before_date_of_birth',
+      'ON ANTITRITRALVIRALS CLIENTS WITHOUT HIV PROGRAM' => 'on_antritralvirals_clients_without_hiv_program'
     }.freeze
 
     def initialize(start_date:, end_date:, tool_name:)
@@ -32,6 +35,101 @@ module ArtService
       eval(TOOLS[@tool_name.to_s])
     rescue StandardError => e
       "#{e.class}: #{e.message}"
+    end
+
+    def on_antritralvirals_clients_without_hiv_program
+      ActiveRecord::Base.connection.select_all <<~SQL
+        SELECT
+          p.patient_id,
+          pp.birthdate,
+          pp.gender,
+          MIN(ob.value_datetime) AS art_start_date,
+          n.given_name,
+          n.family_name,
+          i.identifier arv_number
+        FROM patient p
+        INNER JOIN person_name n ON n.person_id = p.patient_id 
+          AND n.voided = 0
+        INNER JOIN person pp USING(person_id)
+        LEFT JOIN obs ob ON ob.person_id = p.patient_id 
+          AND ob.voided = 0
+          AND ob.concept_id = #{concept('Date antiretrovirals started').concept_id} 
+        LEFT JOIN patient_identifier i ON i.patient_id = p.patient_id 
+          AND i.identifier_type = #{indetifier_type} 
+          AND i.voided = 0
+        INNER JOIN orders o ON o.patient_id = p.patient_id
+        INNER JOIN drug_order do ON do.order_id = o.order_id
+          AND do.drug_inventory_id IN(#{arv_drugs.join(',')})
+          AND do.quantity > 0
+          AND o.start_date < #{ActiveRecord::Base.connection.quote(@end_date)}
+        AND p.patient_id NOT IN (
+          SELECT patient_id 
+            FROM patient_program 
+            WHERE program_id = #{program.id} 
+            AND voided = 0 
+            AND start_date <= DATE(#{ActiveRecord::Base.connection.quote(@end_date)})
+        )
+        GROUP BY p.patient_id
+      SQL
+    end
+
+    def art_start_date_before_date_of_birth
+      ActiveRecord::Base.connection.select_all <<~SQL
+        SELECT
+          p.patient_id,
+          pp.birthdate,
+          pp.gender,
+          MIN(o.value_datetime) AS art_start_date,
+          n.given_name,
+          n.family_name,
+          i.identifier arv_number
+        FROM patient p
+        INNER JOIN person_name n ON n.person_id = p.patient_id AND n.voided = 0
+        INNER JOIN person pp USING(person_id)
+        INNER JOIN obs o ON o.person_id = p.patient_id AND o.voided = 0
+        LEFT JOIN patient_identifier i ON i.patient_id = p.patient_id AND i.identifier_type = #{indetifier_type} AND i.voided = 0
+        WHERE o.concept_id = #{concept('Date antiretrovirals started').concept_id}
+        AND o.value_datetime <= pp.birthdate
+        GROUP BY p.patient_id;
+        SQL
+    end
+
+    def active_clients_with_adverse_outcomes
+      ActiveRecord::Base.connection.select_all <<~SQL
+        SELECT p.patient_id, outcome,
+               outcome_date, DATE(e.encounter_datetime) dispensation_visit_date,
+               pi.identifier arv_number, fn.identifier filling_number
+            FROM patient p
+            LEFT JOIN patient_identifier pi ON p.patient_id = pi.patient_id
+              AND pi.identifier_type = 4
+            LEFT JOIN patient_identifier fn ON p.patient_id = fn.patient_id
+              AND pi.identifier_type = 17
+        INNER JOIN (
+                SELECT pp.patient_id, MAX(DATE(ps.start_date)) outcome_date, cn.name outcome
+                    FROM patient_state ps
+                INNER JOIN patient_program pp ON ps.patient_program_id = pp.patient_program_id
+                        AND pp.voided = 0
+                INNER JOIN program_workflow_state pws ON pws.program_workflow_state_id = ps.state
+                    INNER JOIN concept_name cn ON pws.concept_id = cn.concept_id
+                        AND cn.voided = 0
+                WHERE cn.name IN ('Defaulted', 'Patient died', 'Treatment stopped', 'Patient transferred out')
+                AND ps.end_date IS NULL
+                AND ps.voided = 0
+                AND pp.program_id = 1 # HIV program
+                GROUP BY pp.patient_id
+            ) od ON od.patient_id = p.patient_id
+        INNER JOIN encounter e ON p.patient_id = e.patient_id
+            LEFT JOIN obs ec ON ec.person_id = e.patient_id
+                AND ec.concept_id = 3289 # Type of patient
+            AND ec.value_coded NOT IN (9684, 10522) # No drug refills or external consultations
+            WHERE DATE(e.encounter_datetime) > od.outcome_date
+              AND e.encounter_type = 54
+            AND e.voided = 0
+            AND p.voided = 0
+            AND pi.voided = 0
+            AND patient_outcome(p.patient_id, #{ActiveRecord::Base.connection.quote(@end_date)}) IN ('Defaulted', 'Patient died', 'Treatment stopped', 'Patient transferred out')
+        GROUP BY p.patient_id;
+      SQL
     end
 
     def self.void_duplicate_npid(identifier)
