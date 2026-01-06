@@ -289,7 +289,7 @@ module Api
       end
 
       def mentorship_dispensations_drill_down
-        render json: service.dispensations_drill_down(params[:start_date], params[:end_date], params[:patient_ids])
+        render json: service.dispensations_drill_down(params[:start_date], params[:end_date], params[:patient_ids], params[:creator])
       end
 
       private

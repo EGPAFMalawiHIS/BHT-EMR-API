@@ -212,9 +212,9 @@ module ArtService
                                 end_date: end_date.to_date, patient_ids:).vl_postponed_drill_down
     end
 
-    def dispensations_drill_down(start_date, end_date, patient_ids)
+    def dispensations_drill_down(start_date, end_date, patient_ids, creator)
       REPORTS['MENTORSHIP'].new(start_date: start_date.to_date,
-                                end_date: end_date.to_date, patient_ids:).dispensations_drill_down
+                                end_date: end_date.to_date, patient_ids:).dispensations_drill_down(creator)
     end
 
     def patient_art_vl_dates(end_date, patient_ids)
