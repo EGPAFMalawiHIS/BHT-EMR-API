@@ -18,8 +18,8 @@ class ApplicationController < ActionController::API
 
   # Map of clients to their allowed versions
   CLIENT_VERSION_CONFIGURATION = {
-    'EMASTERCARD' => 'v2025.Q3.R2',
-    'POC' => 'v2025.Q3.R2'
+    'EMASTERCARD' => 'v2025.Q4.R0',
+    'POC' => 'v2025.Q4.R0'
   }
 
   # Required by audited gem
@@ -134,9 +134,9 @@ class ApplicationController < ActionController::API
   end
 
   def render_zpl(data)
-    raw = params.permit(:raw)[:raw]
+    raw = params.require(:raw)
 
-    unless raw && raw == 'true'
+    unless raw && raw == true
       render json: data
       
       return
