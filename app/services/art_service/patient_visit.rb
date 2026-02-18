@@ -142,11 +142,12 @@ module ArtService
         next unless drug
 
         drug_name = format_drug_name(drug)
-        pills_dispensed[drug_name] ||= 0
-        pills_dispensed[drug_name] += observation.value_numeric
+        pills_dispensed[drug_name] ||= { drug_name: drug_name, pills_dispensed: 0, runout_date: '' }
+        pills_dispensed[drug_name][:pills_dispensed] += observation.value_numeric
+        pills_dispensed[drug_name][:runout_date] = observation&.order&.auto_expire_date&.strftime('%d/%b/%Y')
       end
 
-      @pills_dispensed = @pills_dispensed.collect { |k, v| [k, v] }
+      @pills_dispensed = @pills_dispensed.map { |k, v| v.values }
     end
 
     def visit_by
@@ -219,11 +220,27 @@ module ArtService
         tb_status:,
         height:,
         weight:,
-        bmi:
+        bmi:,
+        systolic_blood_pressure:,
+        diastolic_blood_pressure:
       }
     end
 
     private
+
+    def systolic_blood_pressure
+      Observation.where(concept: concept('Systolic blood pressure'), person: patient.person)
+                 .where('obs_datetime BETWEEN ? AND ?', *TimeUtils.day_bounds(date))
+                 .last
+                 &.value_numeric
+    end
+
+    def diastolic_blood_pressure
+      Observation.where(concept: concept('Diastolic blood pressure'), person: patient.person)
+                 .where('obs_datetime BETWEEN ? AND ?', *TimeUtils.day_bounds(date))
+                 .last
+                 &.value_numeric
+    end
 
     def viral_load_tests(sql_params = '=')
       viral_load_concept = ConceptName.where(name: 'HIV Viral Load').select(:concept_id)
@@ -244,19 +261,15 @@ module ArtService
     end
 
     def format_drug_name(drug)
-      moh_name = drug.alternative_names.first&.short_name
+      short_name = drug.alternative_names.first&.short_name
 
-      if moh_name && %r{^\d*[A-Z]+\s*\d+(\s*/\s*\d*[A-Z]+\s*\d+)*$}i.match(moh_name)
-        return moh_name.gsub(/\s+/, '')
-                       .gsub(/Isoniazid/i, 'INH')
+      return short_name.gsub(/\s+/, '') if short_name.present? && !Drug.arv_drugs.pluck(:drug_id).include?(drug.drug_id)
+
+      if %r{^\d*[A-Z]+\s*\d+(\s*/\s*\d*[A-Z]+\s*\d+)*$}i.match(short_name)
+        return short_name.gsub(/\s+/, '')
       end
 
-      match = drug.name.match(/^(.+)\s*\(.*$/)
-      name = match.nil? ? drug.name : match[1]
-
-      name = 'CPT' if name.match?('Cotrimoxazole')
-      # name = 'INH' if name.match?('INH')
-      name
+      drug.name
     end
   end
 end

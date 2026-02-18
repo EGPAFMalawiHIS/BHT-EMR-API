@@ -21,7 +21,7 @@ module ZebraPrinter # :nodoc:
         @right_margin = 25
         @top_margin = 30
         @bottom_margin = 26
-        @line_spacing = 6
+        @line_spacing = 3
         @column_count = 1
         @content_width = @width - (@left_margin + @right_margin)
         @content_height = @height - (@top_margin + @bottom_margin)
@@ -181,7 +181,7 @@ module ZebraPrinter # :nodoc:
       def draw_text(data, x, y, r = 0, font_selection = 1, horizontal_multiplier = 1, vertical_multiplier = 1,
                     reverse = false)
         data = begin
-          data.gsub("'", "\\\\'")
+        data.gsub("'", "\\\\'")
         rescue StandardError
           data
         end
@@ -284,9 +284,11 @@ module ZebraPrinter # :nodoc:
         [char_width * horizontal_multiplier, char_height * vertical_multiplier]
       end
 
-      def get_word_size(char_width, word, need_space)
-        (char_width * (word.size + (need_space ? 1 : 0))).to_i
-      end
+    def get_word_size(char_width, word, need_space)
+    # Count actual visible characters, ignoring escape sequences
+    visible_length = word.gsub(/\\\\[\'"]/, '_').size
+    (char_width * (visible_length + (need_space ? 1 : 0))).to_i
+    end
     end
 
     class StandardLabel < Label
@@ -297,6 +299,7 @@ module ZebraPrinter # :nodoc:
           nil || '801,329'
         end.split(',').collect(&:to_i)
         super(dimensions.first, dimensions.last, 'T')
+        @column_width = 700
       end
     end
 
