@@ -9,14 +9,18 @@ module ArtService
         attr_accessor :start_date, :end_date, :report, :rebuild_outcome
 
         include Utils
+        include CommonSqlQueryUtils
 
         def initialize(start_date:, end_date:, **kwargs)
-          super(start_date:, end_date:, **kwargs)
+          super(start_date: (end_date - 2.months).beginning_of_month, end_date:, **kwargs)
+          @start_date = start_date
+          @dsd = kwargs[:dsd]
+          @report_type = kwargs[:report_type] || 'pepfar'
+          @tx_curr = []
         end
 
         def find_report
           drop_temporary_tables
-          create_temp_earliest_start_date unless temp_eartliest_start_date_exists?
           init_report
           process_patients_alive_and_on_art
           process_tb_screening
@@ -81,29 +85,26 @@ module ArtService
               SELECT o.person_id, MAX(o.obs_datetime) AS obs_datetime, tesd.earliest_start_date, tesd.gender, tesd.birthdate
               FROM obs o
               INNER JOIN temp_earliest_start_date tesd ON tesd.patient_id = o.person_id #{@report_type == 'moh' ? '' : "AND tesd.patient_id IN (#{@tx_curr.join(',')})"}
+              #{dsd_query(dsd: @dsd, model: 'tesd') if @dsd}
               WHERE o.concept_id = #{ConceptName.find_by_name('TB status').concept_id}
               AND o.value_coded IN (SELECT concept_id FROM concept_name WHERE name IN ('TB Suspected', 'TB NOT suspected') AND voided = 0)
               AND o.voided = 0 AND o.obs_datetime BETWEEN '#{start_date}' AND '#{end_date}' #{@report_type == 'moh' ? '' : "AND o.person_id IN (#{@tx_curr.join(',')})"}
               GROUP BY o.person_id
             ) current_obs ON current_obs.person_id = o.person_id AND current_obs.obs_datetime = o.obs_datetime
             INNER JOIN concept_name cn ON cn.concept_id = o.value_coded AND cn.voided = 0
+            INNER JOIN obs patient_present ON patient_present.person_id = o.person_id
+              AND patient_present.concept_id = #{ConceptName.find_by_name('Patient present').concept_id}
+              AND patient_present.value_coded = #{ConceptName.find_by_name('Yes').concept_id}
+              AND patient_present.voided = 0
             LEFT JOIN obs screen_method ON screen_method.concept_id = #{ConceptName.find_by_name('TB screening method used').concept_id} AND screen_method.voided = 0 AND screen_method.person_id = o.person_id AND DATE(screen_method.obs_datetime) = DATE(current_obs.obs_datetime)
             LEFT JOIN concept_name vcn ON vcn.concept_id = screen_method.value_coded AND vcn.voided = 0 AND vcn.name IN ('Chest x-ray', 'MWRD')
             WHERE o.concept_id = #{ConceptName.find_by_name('TB status').concept_id}
             AND o.voided = 0 #{@report_type == 'moh' ? '' : "AND o.person_id IN (#{@tx_curr.join(',')})"}
             AND o.value_coded IN (SELECT concept_id FROM concept_name WHERE name IN ('TB Suspected', 'TB NOT suspected') AND voided = 0)
             AND o.obs_datetime BETWEEN '#{start_date}' AND '#{end_date}'
+            AND patient_present.obs_datetime BETWEEN '#{start_date}' AND '#{end_date}'
             GROUP BY o.person_id
           SQL
-        end
-
-        def temp_eartliest_start_date_exists?
-          ActiveRecord::Base.connection.table_exists?('temp_earliest_start_date')
-        end
-
-        def create_temp_earliest_start_date
-          cohort_builder = ArtService::Reports::CohortBuilder.new(outcomes_definition: 'pepfar')
-          cohort_builder.init_temporary_tables(start_date, end_date, @occupation)
         end
 
         def process_tb_confirmed_and_on_treatment
@@ -124,8 +125,9 @@ module ArtService
               END AS has_tb_confirmed_date,
               tesd.earliest_start_date as enrollment_date,
               prev.tb_confirmed_date prev_reading
-            FROM obs o
+              FROM obs o
             INNER JOIN temp_earliest_start_date tesd ON tesd.patient_id = o.person_id #{@report_type == 'moh' ? '' : "AND tesd.patient_id IN (#{@tx_curr.join(',')})"}
+            #{dsd_query(dsd: @dsd, model: 'tesd') if @dsd}
             INNER JOIN person p ON p.person_id = o.person_id AND p.voided = 0
             LEFT JOIN obs tcd ON tcd.concept_id = #{ConceptName.find_by_name('TB treatment start date').concept_id} AND tcd.voided = 0 AND tcd.person_id = o.person_id
             LEFT JOIN (
@@ -139,7 +141,7 @@ module ArtService
               AND o.voided = 0 #{@report_type == 'moh' ? '' : "AND o.person_id IN (#{@tx_curr.join(',')})"}
               AND o.obs_datetime <= '#{start_date}'
               GROUP BY o.person_id
-            ) prev ON prev.person_id = o.person_id
+              ) prev ON prev.person_id = o.person_id
             WHERE o.concept_id = #{ConceptName.find_by_name('TB status').concept_id}
             AND o.value_coded = #{ConceptName.find_by_name('Confirmed TB on treatment').concept_id}
             AND o.voided = 0
@@ -220,9 +222,17 @@ module ArtService
         end
 
         def process_method(metrics, methods, patient_id)
-          metrics[:symptom_screen_alone] << patient_id if methods.blank?
-          metrics[:cxr_screen] << patient_id if methods&.include?('chest x-ray') && !methods&.include?('mwrd')
-          metrics[:mwrd_screen] << patient_id if methods&.include?('mwrd')
+          # Hierarchical classification - patient counted in only one indicator
+          if methods&.include?('mwrd')
+            # If mWRD is used, count under mWRD regardless of other methods
+            metrics[:mwrd_screen] << patient_id
+          elsif methods&.include?('chest x-ray')
+            # If CXR is used (but not mWRD), count under CXR
+            metrics[:cxr_screen] << patient_id
+          else
+            # If neither mWRD nor CXR is used, count under symptom screening
+            metrics[:symptom_screen_alone] << patient_id
+          end
         end
 
         # rubocop:enable Metrics/AbcSize

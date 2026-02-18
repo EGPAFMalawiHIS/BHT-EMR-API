@@ -18,14 +18,11 @@ module ArtService
         @occupation = kwargs.delete(:occupation)
         @type = kwargs.delete(:application)
         ids = kwargs.delete(:patient_ids)
-        @patient_ids = case ids.class
-                       when String
-                         ids.split(',').map(&:to_i)
-                       when Array
-                         ids
-                       else
-                         []
-                       end
+        transformed = []
+        transformed = ids.split(',').map(&:to_i) if ids.class == String
+        transformed = ids if ids.class == Array
+
+        @patient_ids = transformed       
       end
 
       def find_report
@@ -36,22 +33,6 @@ module ArtService
         clear_maternal_status
         load_pregnant_women
         load_breast_feeding
-      end
-
-      private
-
-      def vl_maternal_status
-        return { FP: [], FBf: [] } if @patient_ids.blank?
-
-        pregnant = pregnant_women(@patient_ids).map { |woman| woman['patient_id'].to_i }
-        return { FP: pregnant, FBf: [] } if (@patient_ids - pregnant).blank?
-
-        feeding = breast_feeding(@patient_ids - pregnant).map { |woman| woman['patient_id'].to_i }
-
-        {
-          FP: pregnant,
-          FBf: feeding
-        }
       end
 
       def pregnant_women(patient_list)
@@ -68,6 +49,22 @@ module ArtService
           FROM temp_maternal_status#{' '}
           WHERE maternal_status = 'FBf' AND patient_id IN (#{patient_list.join(',')})
         SQL
+      end
+
+      private
+
+      def vl_maternal_status
+        return { FP: [], FBf: [] } if @patient_ids.blank?
+
+        pregnant = pregnant_women(@patient_ids).map { |woman| woman['patient_id'].to_i }
+        return { FP: pregnant, FBf: [] } if (@patient_ids - pregnant).blank?
+
+        feeding = breast_feeding(@patient_ids - pregnant).map { |woman| woman['patient_id'].to_i }
+
+        {
+          FP: pregnant,
+          FBf: feeding
+        }
       end
 
       def load_pregnant_women

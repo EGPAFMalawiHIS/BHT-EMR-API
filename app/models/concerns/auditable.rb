@@ -15,8 +15,10 @@ module Auditable
   extend ActiveSupport::Concern
 
   included do
+    audited if Audit.table_exists?
+    
     before_save :update_change_trail
-    before_create :update_create_trail
+    before_validation :update_create_trail
   end
 
   # Saves current user after every save

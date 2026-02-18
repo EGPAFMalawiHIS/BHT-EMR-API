@@ -162,7 +162,13 @@ module AncService
 
           vis["visit_no"] = visit
           vis["visit_date"] = element
-
+          vis["lmp"] = @current_range[0]["START"].to_date.strftime("%d/%b/%Y") rescue ""
+          vis["edd"] = @current_range[0]["END"].to_date.strftime("%d/%b/%Y") rescue ""
+          vis["bed_net_given"] = @current_range[0]["MOSQUITO NET"] rescue ""
+          vis["planned_delivery_place"] = @current_range[0]["PLANNED DELIVERY PLACE"] rescue ""
+          vis["height"] = @current_range[0]["HEIGHT (CM)"] rescue ""
+          vis["bmi"] = @current_range[0]["BMI"] rescue ""
+          
           fundal_height = encounters[element]["ANC EXAMINATION"]["FUNDUS"].to_i rescue 0
 
           gestation_weeks = getEquivFundalWeeks(fundal_height) rescue ""
@@ -300,17 +306,17 @@ module AncService
       }
 
       @drugs = {}
-      @patient.encounters.where(["(encounter_type = ? OR encounter_type = ?) AND encounter_datetime >= ? AND encounter_datetime <= ?
-            AND program_id = ?", EncounterType.find_by_name("TREATMENT").id, EncounterType.find_by_name("DISPENSING").id,
-                                 @current_range[0]["START"], @current_range[0]["END"], PROGRAM.id]).order("encounter_datetime DESC").each { |e|
-        @drugs[e.encounter_datetime.strftime("%d/%b/%Y")] = {} if !@drugs[e.encounter_datetime.strftime("%d/%b/%Y")]
-        
-        e.orders.each { |o|
-        
-          @drugs[e.encounter_datetime.strftime("%d/%b/%Y")][o.drug_order.drug.name[0,
-                                                                                     o.drug_order.drug.name.index(" ")]] = o.drug_order.quantity
-        }
-      }
+      orders = @patient.orders.where(start_date: @current_range[0]["START"]..@current_range[0]["END"])
+      encounter_date = orders&.first.encounter.encounter_datetime.strftime("%d/%b/%Y") if orders.present?
+      orders.each do |o|
+        drug_order = o.drug_order
+        next unless drug_order
+
+        struct = drug_order.dosage_struct
+        @drugs[encounter_date] ||= {}
+        @drugs[encounter_date][struct[:drug_name]] = drug_order&.quantity
+      end
+      
 
       label = ZebraPrinter::Lib::StandardLabel.new
 
@@ -350,7 +356,6 @@ module AncService
         encounter = encounters[element]
         @i = @i + 1
         visit = {}
-
         if element == @date.to_date.strftime("%d/%b/%Y")
           td = (@drugs[element]["TD"] > 0 ? 1 : "") rescue ""
 
@@ -381,12 +386,12 @@ module AncService
           main_drugs = %w[Fefol TD SP]
 
           med = encounters[element]["UPDATE OUTCOME"]["OUTCOME"].humanize + "; " rescue ""
-          oth = @drugs[element].map { |d, v|
+          oth = @other_drugs[element].map { |d, v|
 
             next if main_drugs.include?(d)
             "#{d}: #{(v.to_s.match(/\.[1-9]/) ? v : v.to_i)}"
 
-          }.join("; ") if @drugs[element].length > 0 rescue ""
+          }.join("; ") if @other_drugs[element].length > 0 rescue ""
 
           med = paragraphate(med.to_s + oth.to_s, 17, 5)
           visit["medication"] = med
