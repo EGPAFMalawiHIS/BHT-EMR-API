@@ -12,17 +12,23 @@ module HtsService
         include ArtService::Reports::Pepfar::Utils
         include HtsService::Reports::HtsReportBuilder
 
-        APPROACH = {
-          directly_assisted: concept('Directly-Assisted').concept_id,
-          unassisted: concept('Un-assisted').concept_id
-        }.freeze
+        class << self
+          def approach
+            @approach ||= {
+              directly_assisted: concept('Directly-Assisted')&.concept_id,
+              unassisted: concept('Un-assisted')&.concept_id
+            }.freeze
+          end
 
-        END_USER = {
-          self_recipient: concept('Self').concept_id,
-          sex_partner: concept('Sexual partner').concept_id,
-          caretaker_for_child: concept('Caretaker for child').concept_id,
-          other: concept('Other').concept_id
-        }.freeze
+          def end_user
+            @end_user ||= {
+              self_recipient: concept('Self')&.concept_id,
+              sex_partner: concept('Sexual partner')&.concept_id,
+              caretaker_for_child: concept('Caretaker for child')&.concept_id,
+              other: concept('Other')&.concept_id
+            }.freeze
+          end
+        end
 
         def initialize(start_date:, end_date:)
           @start_date = start_date.to_date.beginning_of_day
@@ -38,18 +44,18 @@ module HtsService
         private
 
         def init_report(query)
-          female_concept = concept('Female').concept_id
-          male_concept = concept('Male').concept_id
+          female_concept = concept('Female')&.concept_id
+          male_concept = concept('Male')&.concept_id
           pepfar_age_groups.each do |age_group|
             %i[M F].each do |gender|
               row = {}
-              APPROACH.each do |(key, value)|
+              self.class.approach.each do |(key, value)|
                 q = filter_approach(query, value, age_group, gender == :F ? female_concept : male_concept).map do |r|
                   r['person_id']
                 end
                 row[key.to_s] = q
               end
-              END_USER.each do |(key, value)|
+              self.class.end_user.each do |(key, value)|
                 q = filter_end_user(query, value, age_group, gender == :F ? female_concept : male_concept).map do |r|
                   r['person_id']
                 end
@@ -81,16 +87,16 @@ module HtsService
             self_test_clients.joins(<<~SQL)
               INNER JOIN obs user ON user.person_id = obs.person_id
               AND user.voided = 0
-              AND user.concept_id = #{concept('Self-test end user').concept_id}
+              AND user.concept_id = #{concept('Self-test end user')&.concept_id}
               INNER JOIN obs approach ON approach.person_id = obs.person_id
               AND approach.voided = 0
-              AND approach.concept_id = #{concept('Self-test approach').concept_id}
+              AND approach.concept_id = #{concept('Self-test approach')&.concept_id}
               INNER JOIN obs gender ON gender.person_id = obs.person_id
               AND gender.voided = 0
-              AND gender.concept_id = #{concept('Gender of contact').concept_id}
+              AND gender.concept_id = #{concept('Gender of contact')&.concept_id}
               INNER JOIN obs age_group ON age_group.person_id = obs.person_id
               AND age_group.voided = 0
-              AND age_group.concept_id = #{concept('Age of contact').concept_id}
+              AND age_group.concept_id = #{concept('Age of contact')&.concept_id}
               AND age_group.value_datetime is not null
               AND obs.obs_group_id is not null
             SQL
