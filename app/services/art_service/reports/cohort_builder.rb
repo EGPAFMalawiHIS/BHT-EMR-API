@@ -430,22 +430,7 @@ module ArtService
         cohort_struct.patients_with_7_plus_doses_missed_at_their_last_visit = not_adherent
         cohort_struct.patients_with_unknown_adhrence = unknown_adherence
 
-        CohortProgress.step!(progress_key, :adherence) if progress_key
-
-        # Pregnant and breastfeeding status during Consultation.
-        # total_pregnant_women joins @obs_last_visit_thread internally (waits for preload).
-        # Start CPT and IPT order-scans in background threads so they run while we wait.
-        cpt_thread = Thread.new do
-          ActiveRecord::Base.connection_pool.with_connection do
-            total_patients_on_arvs_and_cpt(cohort_struct.total_alive_and_on_art, start_date, end_date)
-          end
-        end
-        ipt_thread = Thread.new do
-          ActiveRecord::Base.connection_pool.with_connection do
-            total_patients_on_arvs_and_ipt(cohort_struct.total_alive_and_on_art, start_date, end_date)
-          end
-        end
-
+        # Pregnant and breastfeeding status during Consultation
         cohort_struct.total_pregnant_women = total_pregnant_women(cohort_struct.total_alive_and_on_art, start_date,
                                                                   end_date)
         cohort_struct.total_breastfeeding_women = total_breastfeeding_women(cohort_struct.total_alive_and_on_art,
@@ -1219,9 +1204,10 @@ module ArtService
             AND LEFT(e.gender, 1) = 'F'
             AND e.patient_id NOT IN (#{total_pregnant_women.join(',')})
           INNER JOIN temp_max_drug_orders max_obs ON max_obs.patient_id = tpo.patient_id
-          INNER JOIN obs ON obs.person_id = tpo.patient_id
+          INNER JOIN obs FORCE INDEX (idx_obs_fast_lookup) ON obs.person_id = tpo.patient_id
             AND obs.voided = 0
             AND obs.concept_id IN (#{breastfeeding_concepts.to_sql})
+            AND obs.value_coded = 1065
             AND obs.obs_datetime >= DATE(max_obs.start_date)
             AND obs.obs_datetime < DATE(max_obs.start_date) + INTERVAL 1 DAY
           INNER JOIN encounter enc
@@ -1230,8 +1216,6 @@ module ArtService
             AND enc.encounter_type IN (#{encounter_types.to_sql})
           WHERE tpo.moh_cum_outcome = 'On antiretrovirals'
           GROUP BY tpo.patient_id
-          HAVING value_coded = 1065
-          ORDER BY obs.obs_datetime DESC;
         SQL
       end
 
@@ -1260,9 +1244,10 @@ module ArtService
             ON e.patient_id = tpo.patient_id
             AND LEFT(e.gender, 1) = 'F'
           INNER JOIN temp_max_drug_orders max_obs ON max_obs.patient_id = tpo.patient_id
-          INNER JOIN obs ON obs.person_id = tpo.patient_id
+          INNER JOIN obs FORCE INDEX (idx_obs_fast_lookup) ON obs.person_id = tpo.patient_id
             AND obs.voided = 0
             AND obs.concept_id IN (#{pregnant_concepts.to_sql})
+            AND obs.value_coded = 1065
             AND obs.obs_datetime >= DATE(max_obs.start_date)
             AND obs.obs_datetime < DATE(max_obs.start_date) + INTERVAL 1 DAY
           INNER JOIN encounter enc
@@ -1271,8 +1256,6 @@ module ArtService
             AND enc.encounter_type IN (#{encounter_types.to_sql})
           WHERE tpo.moh_cum_outcome = 'On antiretrovirals'
           GROUP BY tpo.patient_id
-          HAVING value_coded = 1065
-          ORDER BY obs.obs_datetime DESC;
         SQL
       end
 
