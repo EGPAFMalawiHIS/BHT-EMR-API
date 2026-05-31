@@ -30,7 +30,9 @@ module ArtService
         # load_tmp_patient_table(cohort_struct)
         CohortProgress.step!(progress_key, :prepare) if progress_key
         prepare_tables
+        CohortProgress.step!(progress_key, :phase1) if progress_key
         load_phase1_parallel(end_date)
+        CohortProgress.step!(progress_key, :enroll) if progress_key
         load_data_into_temp_earliest_start_date(end_date.to_date, occupation)
 
         # create_tmp_patient_table_2(end_date)
@@ -300,34 +302,6 @@ module ArtService
         end
 
         # From this point going down: we update temp_earliest_start_date cum_outcome field to have the latest Cumulative outcome
-        update_cum_outcome(start_date: quarter_start_date, end_date:)
-
-        # Pre-load tmp_max_adherence in a background thread while the remaining indicator
-        # queries run. This overlaps the cold-buffer-pool obs I/O (~391s) with ~165s of
-        # indicator computation, saving ~146s wall time on a cold database.
-        # temp_patient_outcomes (just populated by update_cum_outcome) is required.
-        _quoted_end_for_adherence = ActiveRecord::Base.connection.quote(end_date)
-        @adherence_preload_thread = Thread.new do
-          ActiveRecord::Base.connection_pool.with_connection { load_tmp_max_adherence(_quoted_end_for_adherence) }
-        end
-
-        # Pre-load obs at last drug-order visit for pregnant/breastfeeding concepts in parallel
-        # with the adherence preload. Runs over the same female ART patient obs pages, so I/O
-        # overlaps with adherence instead of adding ~350 s sequentially after adherence.
-        # When done, total_pregnant_women and total_breastfeeding_women become near-instant.
-        _quoted_end_for_obs_lv = ActiveRecord::Base.connection.quote(end_date)
-        @obs_last_visit_thread = Thread.new do
-          ActiveRecord::Base.connection_pool.with_connection { load_temp_obs_last_visit(_quoted_end_for_obs_lv) }
-        end
-
-        # update_tb_status and update_patient_side_effects both JOIN temp_patient_outcomes
-        # (populated above) but write to separate tables — safe to run in parallel.
-        [
-          Thread.new { ActiveRecord::Base.connection_pool.with_connection { update_tb_status(end_date) } },
-          Thread.new { ActiveRecord::Base.connection_pool.with_connection { update_patient_side_effects(end_date) } }
-        ].each(&:join)
-
-        # From this point going down: we update temp_earliest_start_date cum_outcome field to have the latest Cumulative outcome
         CohortProgress.step!(progress_key, :cum_outcome) if progress_key
         update_cum_outcome(start_date: quarter_start_date, end_date:)
 
@@ -448,6 +422,8 @@ module ArtService
         cohort_struct.patients_with_7_plus_doses_missed_at_their_last_visit = not_adherent
         cohort_struct.patients_with_unknown_adhrence = unknown_adherence
 
+        CohortProgress.step!(progress_key, :adherence) if progress_key
+
         # Pregnant and breastfeeding status during Consultation.
         # total_pregnant_women joins @obs_last_visit_thread internally (waits for preload).
         # Start CPT and IPT order-scans in background threads so they run while we wait.
@@ -469,10 +445,12 @@ module ArtService
         cohort_struct.total_other_patients = total_other_patients(cohort_struct.total_alive_and_on_art,
                                                                   cohort_struct.total_breastfeeding_women, cohort_struct.total_pregnant_women)
 
+        CohortProgress.step!(progress_key, :preg_bf) if progress_key
         # Collect CPT/IPT results (threads started before the obs_last_visit join-wait above)
         cohort_struct.total_patients_on_arvs_and_cpt = cpt_thread.value
         cohort_struct.total_patients_on_arvs_and_ipt = ipt_thread.value
 
+        CohortProgress.step!(progress_key, :tpt_fp_bp) if progress_key
         # Family planning and BP screening — run in parallel (obs-based, independent date ranges)
         fp_thread = Thread.new do
           ActiveRecord::Base.connection_pool.with_connection do
