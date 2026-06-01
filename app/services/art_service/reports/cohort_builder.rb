@@ -1436,29 +1436,49 @@ module ArtService
           SELECT concept_id FROM concept_set WHERE concept_set = 1085
         SQL
 
-        # Drive from the ~25K active patients rather than scanning all adherence obs rows.
-        # idx_obs_fast_lookup (person_id, concept_id, voided, obs_datetime) gives a tight range
-        # scan per patient instead of a full concept-6987 table scan (dev's original approach
-        # was obs → orders → concept_set which caused 200+s scans on large databases).
-        ActiveRecord::Base.connection.execute <<~SQL
-          INSERT INTO tmp_max_adherence
-          SELECT tpo.patient_id, DATE(MAX(obs.obs_datetime)) AS visit_date
-            FROM temp_patient_outcomes tpo
-            INNER JOIN obs FORCE INDEX (idx_obs_fast_lookup)
-              ON obs.person_id = tpo.patient_id
-              AND obs.concept_id = 6987
-              AND obs.voided = 0
-              AND obs.obs_datetime < (DATE(#{end_date}) + INTERVAL 1 DAY)
-              AND (obs.value_numeric IS NOT NULL OR obs.value_text IS NOT NULL)
-            INNER JOIN orders
-              ON orders.order_id = obs.order_id
-              AND orders.order_type_id = 1
-              AND orders.voided = 0
-            INNER JOIN temp_arv_drug_concepts
-              ON temp_arv_drug_concepts.concept_id = orders.concept_id
-            WHERE tpo.moh_cum_outcome = 'On antiretrovirals'
-            GROUP BY tpo.patient_id;
-        SQL
+        # Drive from the ~25K active patients and constrain the obs scan to start from each
+        # patient's last ARV order date (temp_max_drug_orders.start_date, populated by
+        # update_cum_outcome). Adherence obs (concept_id=6987) are recorded at dispensation
+        # encounters, so obs_datetime ≈ orders.start_date. Using the last order date as a
+        # floor shrinks each patient's obs range from their full ART history (50-100+ rows)
+        # to just the last dispensation visit (1-3 rows), cutting scan volume by ~50x.
+        #
+        # idx_obs_fast_lookup (person_id, concept_id, voided, obs_datetime) turns the
+        # constrained range into a tight 2-sided scan per patient.
+        #
+        # READ UNCOMMITTED prevents InnoDB from acquiring shared next-key locks on every
+        # scanned obs/orders row. Under the default REPEATABLE READ isolation, an
+        # INSERT INTO ... SELECT locks all source rows it touches; on a large obs table
+        # (~millions of rows) this exhausts the InnoDB lock table and raises
+        # "The total number of locks exceeds the lock table size". This is a read-only
+        # reporting scan on stable data, so dirty-read anomalies cannot occur in practice.
+        conn = ActiveRecord::Base.connection
+        conn.execute('SET SESSION TRANSACTION ISOLATION LEVEL READ UNCOMMITTED')
+        begin
+          conn.execute <<~SQL
+            INSERT INTO tmp_max_adherence
+            SELECT tpo.patient_id, DATE(MAX(obs.obs_datetime)) AS visit_date
+              FROM temp_patient_outcomes tpo
+              INNER JOIN temp_max_drug_orders mdo ON mdo.patient_id = tpo.patient_id
+              INNER JOIN obs FORCE INDEX (idx_obs_fast_lookup)
+                ON obs.person_id = tpo.patient_id
+                AND obs.concept_id = 6987
+                AND obs.voided = 0
+                AND obs.obs_datetime >= DATE(mdo.start_date)
+                AND obs.obs_datetime < (DATE(#{end_date}) + INTERVAL 1 DAY)
+                AND (obs.value_numeric IS NOT NULL OR obs.value_text IS NOT NULL)
+              INNER JOIN orders
+                ON orders.order_id = obs.order_id
+                AND orders.order_type_id = 1
+                AND orders.voided = 0
+              INNER JOIN temp_arv_drug_concepts
+                ON temp_arv_drug_concepts.concept_id = orders.concept_id
+              WHERE tpo.moh_cum_outcome = 'On antiretrovirals'
+              GROUP BY tpo.patient_id;
+          SQL
+        ensure
+          conn.execute('SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ')
+        end
       end
 
       # Pre-load a temp table of observations recorded at each female ART patient's last
