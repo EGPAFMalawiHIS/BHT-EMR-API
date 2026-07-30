@@ -2,7 +2,7 @@
 
 ## 📌 Overview
 
-This repository (`DevBackend`) includes a native **HL7 FHIR (Fast Healthcare Interoperability Resources) R4** implementation. It enables standard-based interoperability between the Legacy EMR and external systems such as laboratory information management systems (e.g., `mlab_api`), national shared health record repositories, and third-party healthcare applications.
+This repository (`DevBackend`) includes a native **HL7 FHIR (Fast Healthcare Interoperability Resources) R4** implementation. It enables standard-based interoperability between the Legacy EMR and external systems such as laboratory information management systems (e.g., IBLIS), national shared health record repositories, and third-party healthcare applications.
 
 ---
 
@@ -33,13 +33,13 @@ DevBackend/
 
 ## 🛠️ FHIR R4 Mapping Specification
 
-| EMR Domain Concept | FHIR Resource Type | Key Attributes Mapped |
-| :--- | :--- | :--- |
-| **Patient / Person** | `Patient` | Identifier (NPID `http://his.gov.mw/fhir/identifier/npid`), Given/Family Name, Gender, Birth Date |
-| **Lab Order** | `ServiceRequest` | Identifier (Accession Number `http://his.gov.mw/fhir/identifier/accession-number`), Status, Code (Test Name), Subject |
-| **Lab Result Measure** | `Observation` | Category (`laboratory`), Status (`final`), Subject, Value (`valueString` / `valueQuantity`) |
-| **Lab Diagnostic Report** | `DiagnosticReport` | Status (`final`), Code, Subject, Contained Observations |
-| **Server Conformance** | `CapabilityStatement` | Server software metadata, FHIR Version `4.0.1`, Supported Resource types & search parameters |
+| EMR Domain Concept        | FHIR Resource Type    | Key Attributes Mapped                                                                                                 |
+| :------------------------ | :-------------------- | :-------------------------------------------------------------------------------------------------------------------- |
+| **Patient / Person**      | `Patient`             | Identifier (NPID `http://his.gov.mw/fhir/identifier/npid`), Given/Family Name, Gender, Birth Date                     |
+| **Lab Order**             | `ServiceRequest`      | Identifier (Accession Number `http://his.gov.mw/fhir/identifier/accession-number`), Status, Code (Test Name), Subject |
+| **Lab Result Measure**    | `Observation`         | Category (`laboratory`), Status (`final`), Subject, Value (`valueString` / `valueQuantity`)                           |
+| **Lab Diagnostic Report** | `DiagnosticReport`    | Status (`final`), Code, Subject, Contained Observations                                                               |
+| **Server Conformance**    | `CapabilityStatement` | Server software metadata, FHIR Version `4.0.1`, Supported Resource types & search parameters                          |
 
 ---
 
@@ -47,20 +47,20 @@ DevBackend/
 
 All FHIR endpoints are mounted under `/api/v1/fhir`:
 
-| Method | Endpoint | Description |
-| :--- | :--- | :--- |
-| `GET` | `/api/v1/fhir/metadata` | Returns system `CapabilityStatement` (FHIR R4 conformance statement) |
-| `GET` | `/api/v1/fhir/Patient` | Search patients (`?identifier=P123` or `?name=John`) |
-| `GET` | `/api/v1/fhir/Patient/:id` | Fetch single FHIR `Patient` resource |
-| `GET` | `/api/v1/fhir/ServiceRequest` | List lab orders |
-| `GET` | `/api/v1/fhir/ServiceRequest/:id` | Fetch single FHIR `ServiceRequest` resource |
-| `POST` | `/api/v1/fhir/ServiceRequest` | Create lab order from FHIR `ServiceRequest` payload |
-| `GET` | `/api/v1/fhir/Observation` | Fetch FHIR `Observation` lab results |
-| `GET` | `/api/v1/fhir/Observation/:id` | Fetch single `Observation` resource |
-| `GET` | `/api/v1/fhir/DiagnosticReport` | Fetch completed `DiagnosticReport` bundles |
-| `GET` | `/api/v1/fhir/DiagnosticReport/:id` | Fetch single `DiagnosticReport` resource |
-| `POST` | `/api/v1/fhir/send_order_to_lab` | Triggers `FhirLabClient` to send FHIR order to lab system |
-| `GET` | `/api/v1/fhir/fetch_results_from_lab` | Triggers `FhirLabClient` to pull lab results from lab system |
+| Method | Endpoint                              | Description                                                          |
+| :----- | :------------------------------------ | :------------------------------------------------------------------- |
+| `GET`  | `/api/v1/fhir/metadata`               | Returns system `CapabilityStatement` (FHIR R4 conformance statement) |
+| `GET`  | `/api/v1/fhir/Patient`                | Search patients (`?identifier=P123` or `?name=John`)                 |
+| `GET`  | `/api/v1/fhir/Patient/:id`            | Fetch single FHIR `Patient` resource                                 |
+| `GET`  | `/api/v1/fhir/ServiceRequest`         | List lab orders                                                      |
+| `GET`  | `/api/v1/fhir/ServiceRequest/:id`     | Fetch single FHIR `ServiceRequest` resource                          |
+| `POST` | `/api/v1/fhir/ServiceRequest`         | Create lab order from FHIR `ServiceRequest` payload                  |
+| `GET`  | `/api/v1/fhir/Observation`            | Fetch FHIR `Observation` lab results                                 |
+| `GET`  | `/api/v1/fhir/Observation/:id`        | Fetch single `Observation` resource                                  |
+| `GET`  | `/api/v1/fhir/DiagnosticReport`       | Fetch completed `DiagnosticReport` bundles                           |
+| `GET`  | `/api/v1/fhir/DiagnosticReport/:id`   | Fetch single `DiagnosticReport` resource                             |
+| `POST` | `/api/v1/fhir/send_order_to_lab`      | Triggers `FhirLabClient` to send FHIR order to lab system            |
+| `GET`  | `/api/v1/fhir/fetch_results_from_lab` | Triggers `FhirLabClient` to pull lab results from lab system         |
 
 ---
 
@@ -89,22 +89,29 @@ report = client.fetch_results(accession_number: 'ACC-12345')
 ## 🧪 Testing & Verification
 
 ### 1. Run Verification Script
+
 To test inter-system communication between Legacy EMR and mLab:
+
 ```bash
 bundle exec rails runner bin/verify_fhir_integration.rb
 ```
 
 ### 2. Run RSpec Request Specs
+
 ```bash
 bundle exec rspec spec/requests/fhir_spec.rb
 ```
 
 ### 3. Browser Direct Access
+
 Start Puma server:
+
 ```bash
 bundle exec rails server -p 3000
 ```
+
 Open in browser:
+
 - `http://localhost:3000/api/v1/fhir/metadata`
 - `http://localhost:3000/api/v1/fhir/Patient`
 - `http://localhost:3000/api/v1/fhir/ServiceRequest`
