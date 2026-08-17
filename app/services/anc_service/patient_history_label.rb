@@ -9,6 +9,22 @@ module AncService
       @date = date
     end
 
+    def normalize_yes_no(value)
+      return "" if value.nil?
+
+      text = value.to_s.strip
+      return "" if text.empty?
+
+      case text.upcase
+      when "YES", "Y", "TRUE", "1"
+        "YES"
+      when "NO", "N", "FALSE", "0"
+        "NO"
+      else
+        "YES"
+      end
+    end
+
     def print
       @patient = begin
           patient
@@ -251,122 +267,35 @@ module AncService
         false ? true : false
       end)
       label.draw_text(@abortions.to_s, 280, 119, 0, 2, 1, 1, (@abortions > 1))
-      label.draw_text((if !@stillbirths.nil?
-        @stillbirths.upcase == "NO" ? "NO" : "YES"
-      else
-        ""
-      end).to_s, 280, 149, 0, 2, 1, 1,
-                      (!@stillbirths.nil? ? @stillbirths.upcase != "NO" : false))
-      label.draw_text((if !@vacuum.nil?
-        @vacuum.positive? ? "YES" : "NO"
-      else
-        ""
-      end).to_s, 280, 179, 0, 2, 1, 1,
-                      (if !@vacuum.nil?
-        @vacuum.positive? ? true : false
-      else
-        false
-      end))
-      label.draw_text((if !@csections.blank?
-        @csections <= 0 ? "NO" : "YES"
-      else
-        ""
-      end).to_s, 280, 209, 0, 2, 1, 1,
-                      (if !@csections.blank?
-        @csections.positive?
-      else
-        false
-      end))
+      still_births = normalize_yes_no(@stillbirths)
+      vacuum_extraction = normalize_yes_no(@vacuum.positive? ? "YES" : "NO")
+      csection_value = normalize_yes_no(@csections.blank? ? nil : (@csections <= 0 ? "NO" : "YES"))
+      preeclampsia_value = normalize_yes_no(@preeclampsia)
+      asthma_value = normalize_yes_no(@asthma)
+      hyper_value = normalize_yes_no(@hyper)
+      diabetes_value = normalize_yes_no(@diabetes)
+      epilepsy_value = normalize_yes_no(@epilepsy)
+      renal_value = normalize_yes_no(@renal)
+      fistula_value = normalize_yes_no(@fistula)
+      deform_value = normalize_yes_no(@deform)
+
+      label.draw_text(still_births, 280, 149, 0, 2, 1, 1, !still_births.empty? && still_births != "NO")
+      label.draw_text(vacuum_extraction, 280, 179, 0, 2, 1, 1, vacuum_extraction == "YES")
+      label.draw_text(csection_value, 280, 209, 0, 2, 1, 1, csection_value == "YES")
       label.draw_text(@haemorrhage.to_s, 280, 239, 0, 2, 1, 1,
                       begin
         (@haemorrhage.upcase == "PPH")
       rescue StandardError
         false ? true : false
       end)
-      label.draw_text((if !@preeclampsia.nil?
-        begin
-          (@preeclampsia.upcase == "NO")
-        rescue StandardError
-          false ? "NO" : "YES"
-        end
-      else
-        ""
-      end).to_s, 280, 264, 0, 2, 1, 1,
-                      (if !@preeclampsia.nil?
-        @preeclampsia.upcase != "NO"
-      else
-        false
-      end))
-      label.draw_text((if !@asthma.nil?
-        @asthma.upcase == "NO" ? "NO" : "YES"
-      else
-        ""
-      end).to_s, 690, 59, 0, 2, 1, 1,
-                      (if !@asthma.nil?
-        @asthma.upcase != "NO"
-      else
-        false
-      end))
-      label.draw_text((if !@hyper.nil?
-        @hyper.upcase == "NO" ? "NO" : "YES"
-      else
-        ""
-      end).to_s, 690, 89, 0, 2, 1, 1,
-                      (if !@hyper.nil?
-        @hyper.upcase != "NO"
-      else
-        false
-      end))
-      label.draw_text((if !@diabetes.nil?
-        @diabetes.upcase == "NO" ? "NO" : "YES"
-      else
-        ""
-      end).to_s, 690, 119, 0, 2, 1, 1,
-                      (if !@diabetes.nil?
-        @diabetes.upcase != "NO"
-      else
-        false
-      end))
-      label.draw_text((if !@epilepsy.nil?
-        @epilepsy.upcase == "NO" ? "NO" : "YES"
-      else
-        ""
-      end).to_s, 690, 149, 0, 2, 1, 1,
-                      (if !@epilepsy.nil?
-        @epilepsy.upcase != "NO"
-      else
-        false
-      end))
-      label.draw_text((if !@renal.nil?
-        @renal.upcase == "NO" ? "NO" : "YES"
-      else
-        ""
-      end).to_s, 690, 179, 0, 2, 1, 1,
-                      (if !@renal.nil?
-        @renal != "NO"
-      else
-        false
-      end))
-      label.draw_text((if !@fistula.nil?
-        @fistula.upcase == "NO" ? "NO" : "YES"
-      else
-        ""
-      end).to_s, 690, 209, 0, 2, 1, 1,
-                      (if !@fistula.nil?
-        @fistula.upcase != "NO"
-      else
-        false
-      end))
-      label.draw_text((if !@deform.nil?
-        @deform.upcase == "NO" ? "NO" : "YES"
-      else
-        ""
-      end).to_s, 690, 239, 0, 2, 1, 1,
-                      (if !@deform.nil?
-        @deform != "NO"
-      else
-        false
-      end))
+      label.draw_text(preeclampsia_value, 280, 264, 0, 2, 1, 1, preeclampsia_value == "YES")
+      label.draw_text(asthma_value, 690, 59, 0, 2, 1, 1, asthma_value == "YES")
+      label.draw_text(hyper_value, 690, 89, 0, 2, 1, 1, hyper_value == "YES")
+      label.draw_text(diabetes_value, 690, 119, 0, 2, 1, 1, diabetes_value == "YES")
+      label.draw_text(epilepsy_value, 690, 149, 0, 2, 1, 1, epilepsy_value == "YES")
+      label.draw_text(renal_value, 690, 179, 0, 2, 1, 1, renal_value == "YES")
+      label.draw_text(fistula_value, 690, 209, 0, 2, 1, 1, fistula_value == "YES")
+      label.draw_text(deform_value, 690, 239, 0, 2, 1, 1, deform_value == "YES")
       label.draw_text(@age.to_s, 690, 264, 0, 2, 1, 1,
                       ((@age.positive? && @age < 16) || (@age > 40) ? true : false))
 
@@ -380,20 +309,20 @@ module AncService
             gravida: @gravida.to_s,
             deliveries: @deliveries.to_s,
             abortions: @abortions.to_s,
-            still_births: !@stillbirths.nil? ? (@stillbirths.upcase == "NO" ? "NO" : "YES") : "",
+            still_births: normalize_yes_no(@stillbirths),
             vacuum_extraction: !@vacuum.nil? ? (@vacuum.positive? ? "YES" : "NO") : "",
             csection: !@csections.blank? ? (@csections <= 0 ? "NO" : "YES") : "",
             haemorrhage: @haemorrhage.to_s,
-            preeclampsia: !@preeclampsia.nil? ? (@preeclampsia.upcase == "NO" ? "NO" : "YES") : "",
+            preeclampsia: normalize_yes_no(@preeclampsia),
           },
           medical_history: {
-            asthma: !@asthma.nil? ? (@asthma.upcase == "NO" ? "NO" : "YES") : "",
-            hypertension: !@hyper.nil? ? (@hyper.upcase == "NO" ? "NO" : "YES") : "",
-            diabetes: !@diabetes.nil? ? (@diabetes.upcase == "NO" ? "NO" : "YES") : "",
-            epilepsy: !@epilepsy.nil? ? (@epilepsy.upcase == "NO" ? "NO" : "YES") : "",
-            renal_disease: !@renal.nil? ? (@renal.upcase == "NO" ? "NO" : "YES") : "",
-            fistula_repair: !@fistula.nil? ? (@fistula.upcase == "NO" ? "NO" : "YES") : "",
-            leg_spine_deform: !@deform.nil? ? (@deform.upcase == "NO" ? "NO" : "YES") : "",
+            asthma: normalize_yes_no(@asthma),
+            hypertension: normalize_yes_no(@hyper),
+            diabetes: normalize_yes_no(@diabetes),
+            epilepsy: normalize_yes_no(@epilepsy),
+            renal_disease: normalize_yes_no(@renal),
+            fistula_repair: normalize_yes_no(@fistula),
+            leg_spine_deform: normalize_yes_no(@deform),
             age: @age.to_s,
           },
           surgical_history: @surgicals,

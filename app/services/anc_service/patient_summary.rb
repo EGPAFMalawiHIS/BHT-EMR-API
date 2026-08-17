@@ -22,7 +22,7 @@ module AncService
 
     def full_summary
       active_range = @patient_visit.active_range(@date)
-      gest_age = ((@date.to_date - active_range[0]["START"].to_date).to_i / 7) - 1 rescue nil
+      gest_age = ((@date.to_date - active_range[0]["START"].to_date).to_i / 7) rescue nil
       edod = active_range[0]["END"].to_date rescue nil
       {
         patient_id: patient.patient_id,

@@ -255,15 +255,15 @@ module AncService
           label.draw_text(fefo.to_s, 664, 200, 0, 2, 1, 1, false)
           vis["fefol"] = fefo
 
-          albe = (@drugs[element]["Albendazole"].to_i > 0 ? @drugs[element]["Albendazole"].to_i : "") rescue ""
+           albe = (@drugs[element]["Albendazole"].to_i > 0 ? @drugs[element]["Albendazole"].to_i : "") rescue ""
 
-          label.draw_text(albe.to_s, 740, 200, 0, 2, 1, 1, false)
-          vis["albendazole"] = albe
-          return { data: vis, zpl: label.print(1) }
-        end
-      end
-
-    end
+           label.draw_text(albe.to_s, 740, 200, 0, 2, 1, 1, false)
+           vis["albendazole"] = albe
+           return { data: vis, zpl: label.print(1) }
+         end
+       end
+       { data: {}, zpl: "" }
+     end
 
     def print2
       visit = AncService::PatientVisit.new patient, date
@@ -423,6 +423,7 @@ module AncService
           return { data: visit, zpl: label.print(1) }
         end
       end
+      { data: {}, zpl: "" }
     end
 
     def active_range(date = Date.today)

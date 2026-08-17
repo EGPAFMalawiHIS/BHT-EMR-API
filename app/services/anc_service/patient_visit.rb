@@ -154,6 +154,8 @@ module AncService
 
       current_range["END"] = current_range["END"] unless ((current_range["END"]).to_date.blank? rescue true)
 
+      current_range["END"] = current_range["START"] + 9.months if current_range["END"].blank? && current_range["START"].present?
+
       return [current_range, pregnancies]
     end
 
