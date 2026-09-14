@@ -54,7 +54,7 @@ module Stream
 
   def stream_wait_time
     config = Rails.configuration.database_configuration[Rails.env]
-    config['queue']['processing_delay_time'] || 10
+    config.dig('queue', 'processing_delay_time') || 10
   end
 
   def get_patient_id

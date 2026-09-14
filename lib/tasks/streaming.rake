@@ -86,6 +86,34 @@ namespace :streaming do
     puts e.message
   end
 
+  desc "Enable streaming: provisions the queue DB/schema (if needed) and activates the feature flag. Usage: rails streaming:enable"
+  task enable: :environment do
+    unless Rails.configuration.database_configuration[Rails.env]['queue']
+      puts "\e[31mError: no 'queue' database configured for #{Rails.env} in database.yml.\e[0m"
+      puts "Run bin/toggle_streaming.sh enable #{Rails.env} to configure it automatically, then re-run this task."
+      exit 1
+    end
+
+    Rake::Task['streaming:setup'].invoke
+
+    puts ""
+    puts "\e[33mReminder: set ENABLE_STREAMING=true in this environment and restart the\e[0m"
+    puts "\e[33mapp/worker processes for the SolidQueue ActiveJob adapter to take effect.\e[0m"
+  end
+
+  desc "Disable streaming: deactivates the feature flag without touching the queue database. Usage: rails streaming:disable"
+  task disable: :environment do
+    property = GlobalProperty.find_or_initialize_by(property: 'patient.streaming')
+    property.property_value = 'inactive'
+    property.description = property.description.presence || 'Enable/Disable patient streaming'
+    property.save!
+
+    puts "\e[32mStreaming disabled \u2014 patient.streaming set to 'inactive'.\e[0m"
+    puts "\e[33mNote: the queue database/schema were left untouched (non-destructive).\e[0m"
+    puts "\e[33mIf ENABLE_STREAMING=true is set in this environment, unset it and restart\e[0m"
+    puts "\e[33mthe app/worker processes to fully switch the ActiveJob adapter back to :async.\e[0m"
+  end
+
   desc "Stream incomplete visits for a date range. Usage: rails streaming:incomplete start_date=YYYY-MM-DD end_date=YYYY-MM-DD"
   task incomplete: :environment do
     start_date = ENV['start_date']

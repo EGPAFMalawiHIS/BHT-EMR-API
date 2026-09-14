@@ -1,9 +1,15 @@
 # frozen_string_literal: true
 
-require 'solid_queue_monitor'
-
 Rails.application.routes.draw do
-  mount SolidQueueMonitor::Engine => '/streaming'
+  if StreamingSettings.enabled?
+    require 'solid_queue_monitor'
+    mount SolidQueueMonitor::Engine => '/streaming'
+  else
+    match '/streaming(/*path)', via: :all, to: proc {
+      [503, { 'Content-Type' => 'text/plain' }, ['Streaming monitor is disabled. Set ENABLE_STREAMING=true and run rails streaming:enable.']]
+    }
+  end
+
   mount Lab::Engine => '/'
   # mount Radiology::Engine => '/'
   # mount EmrOhspInterface::Engine => '/'

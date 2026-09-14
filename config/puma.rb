@@ -1,8 +1,13 @@
 # frozen_string_literal: true
 
 require 'etc'
+require_relative 'streaming_settings'
 
-plugin :solid_queue
+# Streaming is an optional feature — only boot the SolidQueue supervisor
+# inside Puma when a site has explicitly opted in via ENABLE_STREAMING=true.
+# Otherwise sites without a `queue` database would fail with errors like
+# "Table 'xxx.solid_queue_processes' doesn't exist".
+plugin :solid_queue if StreamingSettings.enabled?
 
 num_cores = Etc.nprocessors
 num = num_cores > 2 ? num_cores - 2 : 1

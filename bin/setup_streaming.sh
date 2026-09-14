@@ -72,7 +72,7 @@ echo "Configuring database yml file..." 1>&2
       print "  queue:"
       print "    <<: *default"
       print "    database: solid_queue_prod_" production_db_name
-      print "    migrations_paths: db/queue_migrate"
+      print "    migrations_paths: []"
       print "    processing_delay_time: 20"
       production_done=1
       next

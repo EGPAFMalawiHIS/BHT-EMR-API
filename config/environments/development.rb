@@ -55,5 +55,10 @@ Rails.application.configure do
   # routes, locales, etc. This feature depends on the listen gem.
   config.file_watcher = ActiveSupport::FileUpdateChecker
 
-  config.solid_queue.connects_to = { database: { writing: :queue } }
+  # Streaming is an optional feature — only connect SolidQueue to the `queue`
+  # database when explicitly opted in, so sites without streaming don't need
+  # a `queue` entry in database.yml.
+  if StreamingSettings.enabled?
+    config.solid_queue.connects_to = { database: { writing: :queue } }
+  end
 end

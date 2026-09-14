@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative 'boot'
+require_relative 'streaming_settings'
 
 require 'rails'
 # Pick the frameworks you want:
@@ -21,6 +22,10 @@ Bundler.require(*Rails.groups)
 
 module BHTEmrApi
   class Application < Rails::Application
+    config.before_configuration do
+      StreamingSettings.normalize_env!
+    end
+
     # Initialize configuration defaults for originally generated Rails version.
     config.load_defaults 7.0
     config.eager_load_paths << Rails.root.join('lib')

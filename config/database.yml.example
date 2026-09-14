@@ -16,31 +16,36 @@ development:
   primary: 
     <<: *default
     database: openmrs_dev
-  queue:
-    <<: *default
-    database: queue_dev
-    migrations_paths: []
-    processing_delay_time: 10
+  # The `queue:` database is only needed if you opt in to the streaming
+  # feature. Uncomment and configure it, then run
+  # `bin/toggle_streaming.sh enable development` to provision it.
+  # queue:
+  #   <<: *default
+  #   database: queue_dev
+  #   migrations_paths: []
+  #   processing_delay_time: 10
 
 test:
   primary:
     <<: *default
     database: khulambe_test
-  queue:
-    <<: *default
-    database: queue_test
-    migrations_paths: []
-    processing_delay_time: 10
+  # See note above — only needed if streaming is enabled for this environment.
+  # queue:
+  #   <<: *default
+  #   database: queue_test
+  #   migrations_paths: []
+  #   processing_delay_time: 10
 
 production:
   primary:
     <<: *default
     database: openmrs_prod
-  queue:
-    <<: *default
-    database: queue_prod
-    migrations_paths: []
-    processing_delay_time: 10
+  # See note above — only needed if streaming is enabled for this environment.
+  # queue:
+  #   <<: *default
+  #   database: queue_prod
+  #   migrations_paths: []
+  #   processing_delay_time: 10
 
 # Uncomment out the following and update them accordingly if
 # you need to sync hts and anc to RDS.
