@@ -99,7 +99,7 @@ module ArtService
       lims_order = nlims.patient_orders(accession_number)
       priority = lims_order["other"]["priority"]
       test = lims_order["tests"].first[0] # Pick any test name from the tests
-      collector = ""
+      collector = order.start_date.strftime("%d-%b-%Y %H:%M")
       patient = Person.find(order.patient_id)
       patient_name = PersonName.find_by_person_id(order.patient_id)
 
@@ -116,7 +116,7 @@ module ArtService
         family_name: patient_name.family_name,
         birthdate: patient.birthdate,
         gender: patient.gender,
-        collector:,
+        collector: order.start_date.strftime("%d-%b-%Y %H:%M"),
         test:,
         priority:,
         accession_number:,
