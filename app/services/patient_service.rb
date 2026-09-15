@@ -463,6 +463,18 @@ class PatientService
 
     patient_program = PatientProgram.where(['patient_id = ? AND program_id = ? AND date_enrolled <= ?',
                                             patient.patient_id, htn_program.id, date]).first
+    return unless patient_program
+
+    # Validate that the date corresponds to an actual HTN encounter
+    # Allow enrollment date (first visit) without encounter check
+    is_enrollment_date = patient_program.date_enrolled.to_date == date.to_date
+    has_htn_encounter = Encounter.joins(:type)
+                                 .where(patient_id: patient.patient_id, program_id: htn_program.id)
+                                 .where('DATE(encounter_datetime) = ?', date.to_date)
+                                 .where(encounter_type: { name: 'HYPERTENSION MANAGEMENT' })
+                                 .exists?
+
+    return unless is_enrollment_date || has_htn_encounter
 
     state_within_range = PatientState.where(['patient_program_id = ? AND state = ? AND start_date <= ? AND end_date >= ?',
                                              patient_program.id, state, date, date]).first

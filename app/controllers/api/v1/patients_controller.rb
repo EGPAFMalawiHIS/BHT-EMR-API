@@ -235,11 +235,11 @@ module Api
         }
       end
 
-      def update_or_create_htn_state
-        state, = params.require %i[state]
-        date = params[:date]&.to_time || Time.now
-        render json: { updated: service.update_or_create_htn_state(patient, state, date) }
-      end
+def update_or_create_htn_state
+    state = params[:state][:state]
+    date = params[:state][:date]&.to_time || Time.now
+    render json: { updated: service.update_or_create_htn_state(patient, state, date) }
+  end
 
       def filing_number_history
         render json: service.filing_number_history(patient)
