@@ -3,6 +3,8 @@ cdr:
   username: admin
   password: password
 
+ENABLE_STREAMING: true
+
 password_reset:
   secret_key: <key>
 
