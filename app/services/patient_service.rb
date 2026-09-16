@@ -469,6 +469,18 @@ class PatientService
 
     return unless state_within_range.blank?
 
+    # Validate that the date corresponds to an actual patient encounter
+    # Only create state if there's an encounter on the given date
+    start_time, end_time = TimeUtils.day_bounds(date)
+    encounter_exists = Encounter.where(patient: patient, program: htn_program)
+                                .where('encounter_datetime BETWEEN ? AND ?', start_time, end_time)
+                                .exists?
+
+    # Allow state creation for enrollment date even without encounter
+    # but require encounter for subsequent state changes
+    is_enrollment_date = patient_program.date_enrolled.to_date == date.to_date
+    return unless encounter_exists || is_enrollment_date
+
     last_state = PatientState.where(['patient_program_id = ? AND start_date <= ? ',
                                      patient_program.id, date]).order('start_date ASC').last
     unless last_state.blank?
