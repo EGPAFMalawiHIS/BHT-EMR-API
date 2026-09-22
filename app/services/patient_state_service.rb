@@ -17,6 +17,11 @@ class PatientStateService
     patient_program = find_patient_program(program, patient, start_date)
     current_patient_state = find_patient_state_impl(patient_program, start_date)
 
+    # If current state is the same as requested state on the same date, return existing
+    if current_patient_state && current_patient_state.state == state && current_patient_state.start_date == start_date
+      return current_patient_state
+    end
+
     close_patient_state(current_patient_state, start_date) if current_patient_state
 
     PatientState.create patient_program:,
