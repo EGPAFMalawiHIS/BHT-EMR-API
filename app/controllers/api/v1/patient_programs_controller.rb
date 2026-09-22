@@ -20,19 +20,28 @@ module Api
         create_params = params.require(:patient_program).permit(:program_id, :patient_id, :date_enrolled)
         create_params[:date_enrolled] ||= Time.now
         create_params[:location_id] = Location.current.id
+        create_params[:creator] = User.current.id
 
-        if program_exists?(program_id, patient_id)
+        program = Program.find(create_params[:program_id])
+        patient = Patient.find(create_params[:patient_id])
+
+        if PatientProgram.where(program_id: program.id, patient_id: patient.id).exists?
           render json: { errors: ['Patient already enrolled in program'] }, status: :conflict
-
           return
         end
 
-        new_patient_program = PatientProgram.create(create_params)
+        patient_program = PatientProgramService.new.create(
+          patient: patient,
+          program: program,
+          date_enrolled: create_params[:date_enrolled],
+          location: Location.find(create_params[:location_id]),
+          user: User.find(create_params[:creator])
+        )
 
-        if new_patient_program.errors.empty?
-          render json: new_patient_program, status: :created
+        if patient_program.errors.empty?
+          render json: patient_program, status: :created
         else
-          render json: new_patient_program.errors, status: :bad_request
+          render json: patient_program.errors, status: :bad_request
         end
       end
 

@@ -29,7 +29,20 @@ class PatientProgramService
   end
 
   def initial_program_state(program)
-    ProgramWorkflowState.joins(:program_workflow).where(initial: 1, terminal: 0,
-                                                        program_workflow: { program_id: program.id }).first
+    # For HTN program, prefer "On treatment" as initial state
+    if program.name == 'HYPERTENSION PROGRAM'
+      state = ProgramWorkflowState.joins(:program_workflow)
+                                  .joins("INNER JOIN concept_name ON concept_name.concept_id = program_workflow_state.concept_id")
+                                  .where(initial: 1, terminal: 0, program_workflow: { program_id: program.id })
+                                  .where("concept_name.name LIKE ?", "%On treatment%")
+                                  .first
+      return state if state
+    end
+    
+    # Default: first initial state for other programs
+    ProgramWorkflowState.joins(:program_workflow)
+                        .where(initial: 1, terminal: 0, program_workflow: { program_id: program.id })
+                        .order(:concept_id)
+                        .first
   end
 end

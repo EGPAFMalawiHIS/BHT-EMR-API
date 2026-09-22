@@ -1041,18 +1041,38 @@ class PatientService
     # patient_id
     program = PatientProgram.where(['patient_id = ? AND program_id = ? AND date_enrolled <= ?',
                                     patient.id, program_id, date.strftime('%Y-%m-%d 23:59:59')]).last
-    alive_concept_id = ConceptName.where(['name =?', 'Alive']).first.concept_id
     if program.blank? && create
       ActiveRecord::Base.transaction do
-        program = PatientProgram.create({ program_id:, date_enrolled: date,
-                                          patient_id: patient.id })
-        alive_state = ProgramWorkflowState.where(['program_workflow_id = ? AND concept_id = ?',
-                                                  ProgramWorkflow.where(['program_id = ?', program_id]).first.id, alive_concept_id]).first.id
-        PatientState.create(patient_program_id: program.id, start_date: date, state: alive_state)
+        program = PatientProgram.create(program_id:, date_enrolled: date,
+                                        patient_id: patient.id, location_id: Location.current.id,
+                                        creator: User.current.id)
+        initial_state = initial_program_state(Program.find(program_id))
+        if initial_state
+          PatientState.create(patient_program_id: program.id, start_date: date, state: initial_state.id,
+                              creator: User.current.id)
+        end
       end
     end
 
     program
+  end
+
+  def initial_program_state(program)
+    # For HTN program, prefer "On treatment" as initial state
+    if program.name == 'HYPERTENSION PROGRAM'
+      state = ProgramWorkflowState.joins(:program_workflow)
+                                  .joins("INNER JOIN concept_name ON concept_name.concept_id = program_workflow_state.concept_id")
+                                  .where(initial: 1, terminal: 0, program_workflow: { program_id: program.id })
+                                  .where("concept_name.name LIKE ?", "%On treatment%")
+                                  .first
+      return state if state
+    end
+    
+    # Default: first initial state for other programs
+    ProgramWorkflowState.joins(:program_workflow)
+                        .where(initial: 1, terminal: 0, program_workflow: { program_id: program.id })
+                        .order(:concept_id)
+                        .first
   end
 
   def last_bp_readings(patient, date)
