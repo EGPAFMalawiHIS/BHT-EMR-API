@@ -26,8 +26,13 @@ class Patient < VoidableRecord
   end
 
   def as_json(options = {})
+    return super(options) if options.fetch(:ignore, false)
+
     super(options.merge(
       include: {
+        relationships: {
+          methods: %i[person_b_person]
+        },
         person: {
           include: {
             names: {},
@@ -176,7 +181,7 @@ class Patient < VoidableRecord
       order by orders.auto_expire_date desc
       limit 1
     SQL
-result['auto_expire_date']&.to_date || nil if result.present?
+    result['auto_expire_date']&.to_date || nil if result.present?
   end
 
   def tpt_status
@@ -184,5 +189,38 @@ result['auto_expire_date']&.to_date || nil if result.present?
 
     ArtService::Reports::Pepfar::TptStatus.new(start_date: Date.today - 6.months, end_date: Date.today,
                                                patient_id: id).find_report
+  end
+
+  def current_program(program_id:)
+    PatientProgram\
+      .where(patient_id:, program_id:)\
+      .as_json(
+      include: {
+        ignore: true,
+        patient_states: {}
+      }
+    )
+  end
+
+  def visit_data(program_id:, date:)
+    Encounter.where(patient_id:, program_id:)\
+             .where('encounter_datetime BETWEEN ? AND ?', *TimeUtils.day_bounds(date))\
+             .as_json(
+               ignore: true,
+               include: {
+                 provider: {
+                  include: {
+                    names: {}
+                  }
+                 },
+                 observations: {},
+                 orders: {
+                   include: {
+                     lims_acknowledgement_status: {},
+                     drug_order: {}
+                   }
+                 }
+               },
+             )
   end
 end

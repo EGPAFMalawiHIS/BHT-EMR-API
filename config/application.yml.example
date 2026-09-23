@@ -1,3 +1,10 @@
+cdr:
+  url: http://localhost:3001/api/v1/stream
+  username: admin
+  password: password
+
+ENABLE_STREAMING: true
+
 password_reset:
   secret_key: <key>
 

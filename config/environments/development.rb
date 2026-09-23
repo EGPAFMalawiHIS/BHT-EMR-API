@@ -8,6 +8,8 @@ Rails.application.configure do
   # since you don't have to restart the web server when you make code changes.
   config.cache_classes = false
 
+  config.active_support.to_time_preserves_timezone = :zone
+
   # Do not eager load code on boot.
   config.eager_load = false
 
@@ -51,5 +53,12 @@ Rails.application.configure do
 
   # Use an evented file watcher to asynchronously detect changes in source code,
   # routes, locales, etc. This feature depends on the listen gem.
-  config.file_watcher = ActiveSupport::EventedFileUpdateChecker
+  config.file_watcher = ActiveSupport::FileUpdateChecker
+
+  # Streaming is an optional feature — only connect SolidQueue to the `queue`
+  # database when explicitly opted in, so sites without streaming don't need
+  # a `queue` entry in database.yml.
+  if StreamingSettings.enabled?
+    config.solid_queue.connects_to = { database: { writing: :queue } }
+  end
 end

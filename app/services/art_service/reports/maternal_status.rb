@@ -19,10 +19,10 @@ module ArtService
         @type = kwargs.delete(:application)
         ids = kwargs.delete(:patient_ids)
         transformed = []
-        transformed = ids.split(',').map(&:to_i) if ids.class == String
-        transformed = ids if ids.class == Array
+        transformed = ids.split(',').map(&:to_i) if ids.instance_of?(String)
+        transformed = ids if ids.instance_of?(Array)
 
-        @patient_ids = transformed       
+        @patient_ids = transformed
       end
 
       def find_report

@@ -14,7 +14,7 @@ module ArtService
 
         def initialize(start_date:, end_date:, **kwargs)
           @start_date = ActiveRecord::Base.connection.quote(start_date)
-          @check_date = start_date&.to_date - 6.months
+          @check_date = start_date&.to_date&.- 6.months
           @cut_off_point = start_date&.to_date
           @end_date = ActiveRecord::Base.connection.quote(end_date)
           @occupation = kwargs[:occupation]
@@ -101,11 +101,11 @@ module ArtService
           clients = fetch_patients_on_tpt.to_a
           results = []
           clients.each do |client|
-            next if client['tpt_initiation_date']&.to_date > cut_off_point
+            next if client['tpt_initiation_date']&.to_date&.> cut_off_point
 
             result = individual_tpt_report(client['patient_id'])
             next if result.blank?
-            next if result['tpt_initiation_date']&.to_date < check_date
+            next if result['tpt_initiation_date']&.to_date&.< check_date
 
             client['tpt_initiation_date'] = result['tpt_initiation_date']
             client['total_pills_taken'] = result['total_pills_taken']

@@ -63,7 +63,7 @@ module Api
         code = params[:code]
 
         render json: { authorization: UserService.reset_password(code:) },
-                status: :ok
+               status: :ok
       end
 
       def login

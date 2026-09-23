@@ -6,7 +6,6 @@ module ArtService
       # Generates a hypertension report for a clinic
       # rubocop:disable Metrics/ClassLength
       class HypertensionReport
-
         include CommonSqlQueryUtils
         AGE_GROUPS = [
           '15-19 years', '20-24 years',

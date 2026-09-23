@@ -91,7 +91,7 @@ module ArtService
         # patients for which the given `concept_id (DSD)` is the value of the
         # (DSD) the patient is enrolled in.
         #
-        #@param concept_id [Integer]
+        # @param concept_id [Integer]
         #
         # Returns an SQL fragment that
         def dsd_filter(concept_id:)

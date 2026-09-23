@@ -193,11 +193,6 @@ module ArtService
         # rubocop:enable Metrics/PerceivedComplexity
         # rubocop:enable Layout/LineLength
 
-        # rubocop:disable Metrics/AbcSize
-        # rubocop:disable Metrics/MethodLength
-        # rubocop:enable Metrics/AbcSize
-        # rubocop:enable Metrics/MethodLength
-
         def build_report(report)
           refresh_outcomes_table if rebuild
           load_tx_curr_into_report(report, create_patients_alive_and_on_art_query)

@@ -3,6 +3,10 @@
 class Person < VoidableRecord
   after_void :void_related_models
 
+  include Stream
+
+  # TODO: stream when demographics change
+
   self.table_name = 'person'
   self.primary_key = 'person_id'
 
@@ -11,6 +15,7 @@ class Person < VoidableRecord
   has_many :addresses, class_name: 'PersonAddress', foreign_key: :person_id
   has_many :relationships, class_name: 'Relationship', foreign_key: :person_a
   has_many :person_attributes, class_name: 'PersonAttribute', foreign_key: :person_id
+  has_many :identifiers, class_name: 'PatientIdentifier', foreign_key: :patient_id
   has_many :observations, class_name: 'Observation', foreign_key: :person_id do
     def find_by_concept_name(name)
       concept_name = ConceptName.find_by_name(name)
@@ -48,6 +53,23 @@ class Person < VoidableRecord
         person_attributes: { methods: %i[type] }
       }
     ))
+  end
+
+  def address
+    adress = addresses.where(preferred: true).first || addresses.max_by(&:date_created)
+
+    {
+      'current_district' => adress.state_province,
+      'current_village' => adress.city_village,
+      'current_traditional_authority' => adress.township_division,
+      'home_district' => adress.address2,
+      'home_village' => adress.neighborhood_cell,
+      'home_traditional_authority' => adress.county_district
+    }
+  end
+
+  def cell_phone_number
+    person_attributes.find_by(type: 12)&.value
   end
 
   def void_related_models(reason)

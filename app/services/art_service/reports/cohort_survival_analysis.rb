@@ -42,7 +42,7 @@ module ArtService
         clinic_start_years = 10 if clinic_start_years.blank?
 
         while years < clinic_start_years
-          yr = ((quarter.split(' ')[1]).to_i - years)
+          yr = (quarter.split(' ')[1].to_i - years)
           set_qtr = "#{qtr} #{yr}"
           qstart_date, qend_date = art_service.generate_start_date_and_end_date(set_qtr)
           results[set_qtr] = {}

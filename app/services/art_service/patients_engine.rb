@@ -97,14 +97,14 @@ module ArtService
     end
 
     def current_arv_code
-      current_arv_code = global_property("site_prefix")&.property_value
-      raise "Global property `site_prefix` not set" unless current_arv_code
-      
+      current_arv_code = global_property('site_prefix')&.property_value
+      raise 'Global property `site_prefix` not set' unless current_arv_code
+
       current_arv_code
     end
 
     def arv_identifier_type
-      PatientIdentifierType.find_by_name("ARV Number")
+      PatientIdentifierType.find_by_name('ARV Number')
     end
 
     # Returns the start and end dates of the quarter for the given date.
@@ -132,8 +132,8 @@ module ArtService
         identifier_type: PatientIdentifierType.find_by_name('ARV Number'),
         date_created: (prev_quarter_start..prev_quarter_end)
       ).order(date_created: :desc)
-       &.first
-       &.identifier
+                            &.first
+                            &.identifier
 
       return max_arv_number if id.nil?
 
@@ -152,10 +152,14 @@ module ArtService
     def next_available_id_in_current_quarter(date)
       prefix = current_arv_code
 
-      quarter_start, quarter_end = quarter_dates(date)
+      quarter_dates(date)
       last_available = last_arv_number_from_prev_quarter(date)&.gsub("#{prefix}-ARV-", '')&.to_i
 
-      next_available = (last_available + 1) rescue 1
+      next_available = begin
+        (last_available + 1)
+      rescue StandardError
+        1
+      end
 
       # Find all ARV identifiers issued in the current quarter,
       # greater than the last available number from the previous quarter
@@ -170,16 +174,17 @@ module ArtService
 
       # If there are no assigned numbers, return the next available
       # number in the current quarter.
-      # 
+      #
       # which is the last available number + 1
       return next_available unless assigned_numbers.any?
+
       # Find the lowest number not yet assigned
       # in the current quarter by subtracting the assigned numbers from the possible number range
       # and sorting the resulting array
       available_numbers_this_qtr = (next_available..possible_number_range).to_a - assigned_numbers
       # Return the lowest number
       # which is the first element of the sorted array
-      available_numbers_this_qtr.sort.first
+      available_numbers_this_qtr.min
     end
 
     def possible_number_range
@@ -193,7 +198,7 @@ module ArtService
     # @return [String] the next available ARV identifier, including the site prefix
     def find_next_available_arv_number(date)
       next_available_number = next_available_id_in_current_quarter(date)
-      
+
       "#{current_arv_code} #{next_available_number}"
     end
 

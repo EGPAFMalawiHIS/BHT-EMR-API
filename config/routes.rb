@@ -1,9 +1,18 @@
 # frozen_string_literal: true
 
 Rails.application.routes.draw do
+  if StreamingSettings.enabled?
+    require 'solid_queue_monitor'
+    mount SolidQueueMonitor::Engine => '/streaming'
+  else
+    match '/streaming(/*path)', via: :all, to: proc {
+      [503, { 'Content-Type' => 'text/plain' }, ['Streaming monitor is disabled. Set ENABLE_STREAMING=true and run rails streaming:enable.']]
+    }
+  end
+
   mount Lab::Engine => '/'
   # mount Radiology::Engine => '/'
-  mount EmrOhspInterface::Engine => '/'
+  # mount EmrOhspInterface::Engine => '/'
   mount Rswag::Ui::Engine => '/api-docs'
   mount Rswag::Api::Engine => '/api-docs'
 
@@ -160,6 +169,9 @@ Rails.application.routes.draw do
       resources :observations
 
       resources :patient_programs, only: %i[create index show destroy]
+
+      get 'streaming/stats', to: 'streaming#stats'
+      get 'streaming/failed', to: 'streaming#failed'
 
       resources :programs do
         resources :program_workflows, path: :workflows

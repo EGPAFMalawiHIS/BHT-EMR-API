@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require "zebra_printer/init"
+require 'zebra_printer/init'
 
 module Api
   module V1
@@ -37,7 +37,7 @@ module Api
 
         render json: {
           date_enrolled:,
-          earliest_start_date:,
+          earliest_start_date:
         }
       end
 
