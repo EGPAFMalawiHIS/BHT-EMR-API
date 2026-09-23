@@ -840,24 +840,18 @@ module ArtService
         # The original code drove FROM encounter → obs (encounter_type=9 filter first), costing
         # ~43s because MySQL scanned all encounter rows and then did per-row obs bookmark lookups.
         # By inverting the driver (obs first, then encounter PK join) we keep the HIV CLINIC
-        # REGISTRATION correctness filter while tolerating nullable encounter program metadata.
+        # REGISTRATION + program_id = 1 correctness filter while remaining fast.
         ActiveRecord::Base.connection.execute <<-SQL
           INSERT INTO temp_art_start_date
           SELECT o.person_id, DATE(MIN(o.value_datetime)) value_datetime
           FROM obs o FORCE INDEX (idx_obs_art_start_date_lookup)
           INNER JOIN encounter e ON e.encounter_id = o.encounter_id
             AND e.encounter_type = 9
+            AND e.program_id = 1
             AND e.voided = 0
             AND e.encounter_datetime < DATE('#{end_date}') + INTERVAL 1 DAY
           WHERE o.concept_id = 2516
             AND o.obs_datetime < DATE('#{end_date}') + INTERVAL 1 DAY
-            AND EXISTS (
-              SELECT 1
-              FROM patient_program pp
-              WHERE pp.patient_id = o.person_id
-                AND pp.program_id = 1
-                AND pp.voided = 0
-            )
           GROUP BY o.person_id
           HAVING value_datetime IS NOT NULL
         SQL
