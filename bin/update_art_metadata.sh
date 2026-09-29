@@ -20,11 +20,19 @@ rails db:environment:set RAILS_ENV=$ENV
 
 whenever --update-crontab
 
-USERNAME=`ruby -ryaml -e "puts YAML.safe_load(File.read('config/database.yml'), aliases: true)['${ENV}']['username']"`
-PASSWORD=`ruby -ryaml -e "puts YAML.safe_load(File.read('config/database.yml'), aliases: true)['${ENV}']['password']"`
-DATABASE=`ruby -ryaml -e "puts YAML.safe_load(File.read('config/database.yml'), aliases: true)['${ENV}']['database']"`
-HOST=`ruby -ryaml -e "puts YAML.safe_load(File.read('config/database.yml'), aliases: true)['${ENV}']['host']"`
-PORT=`ruby -ryaml -e "puts YAML.safe_load(File.read('config/database.yml'), aliases: true)['${ENV}']['port']"`
+read_config_value() {
+  ruby -ryaml -e "
+    cfg = YAML.safe_load(File.read('config/database.yml'), aliases: true)['${ENV}']
+    cfg = cfg['primary'] if cfg && cfg['primary']
+    puts cfg && cfg['$1']
+  "
+}
+
+USERNAME=`read_config_value username`
+PASSWORD=`read_config_value password`
+DATABASE=`read_config_value database`
+HOST=`read_config_value host`
+PORT=`read_config_value port`
 
 # Only update metadata if migration is successful
 rails db:migrate && {
