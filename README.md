@@ -4,11 +4,15 @@ Table of Contents
 =================
 
 - [HIS EMR API](#his-emr-api)
+- [Table of Contents](#table-of-contents)
   - [Requirements](#requirements)
   - [Setting up](#setting-up)
     - [Configuration](#configuration)
     - [Setting up rails](#setting-up-rails)
     - [Setting up Production mode](#setting-up-production-mode)
+    - [Setting up Streaming](#setting-up-streaming)
+      - [Pre-requisites](#pre-requisites)
+      - [Streaming Commands](#streaming-commands)
       - [Database](#database)
         - [Using an existing database](#using-an-existing-database)
         - [Using an empty database](#using-an-empty-database)
@@ -27,7 +31,7 @@ Table of Contents
     - [Useful (recommended) tools for development](#useful-recommended-tools-for-development)
     - [Dev Container](#dev-container)
     - [Data Cleaning](#data-cleaning)
-   - [Contributors](#contributors)
+  - [Contributors](#contributors)
 
 ## Requirements
 
@@ -79,6 +83,83 @@ Incase this does not run you might want to make it executable and you can achiev
 ```sh
 chmod +x bin/setup_production_mode.sh 
 ```
+
+### Setting up Streaming
+
+#### Pre-requisites
+
+ - Before you run the streaming setup, you need to do the following:
+
+    - In your application.yml file, add the following (edit with the corret details):
+  
+   
+    ```yml
+    cdr:
+      url: http://localhost:3001/api/v1/stream
+      username: admin
+      password: password
+    ```
+
+    - In your database.yml file, update the structure of the configuration to match the example below (For all environments):
+    
+    ```yml
+    development:
+      primary: 
+        <<: *default
+        database: openmrs_dev
+      queue:
+        <<: *default
+        database: queue_dev
+        migration_paths: db/migrate
+        processing_delay_time: 10
+    ```
+  
+    - Create the new database specified in the queue section of the database.yml file.
+    - Do same for development, production and test environments.
+
+Setup streaming  by running the following command (ON your root directory):
+
+```bash
+bash bin/setup_streaming.sh
+```
+
+Done !! You can now test the streaming by going to `http://localhost:3000/streaming/`
+
+#### Streaming Commands
+
+The following rake tasks are available for managing streaming:
+
+**Stream incomplete visits for a date range:**
+
+```bash
+rails streaming:incomplete start_date=YYYY-MM-DD end_date=YYYY-MM-DD
+```
+
+This fetches patients with incomplete visits in the given date range using the Data Cleaning Tool and enqueues a streaming job for each patient/date combination.
+
+**Retry all failed streaming jobs:**
+
+```bash
+rails streaming:failed
+```
+
+This retries all failed jobs in SolidQueue using the built-in retry mechanism.
+
+**View current streaming stats:**
+
+```bash
+rails streaming:stats
+```
+
+Displays the current SolidQueue job counts (done, failed, pending, scheduled).
+
+**Check CDR configuration and connectivity:**
+
+```bash
+rails streaming:ping
+```
+
+Validates the CDR configuration in `application.yml` and pings the CDR URL to verify it is reachable.
 
 #### Database
 

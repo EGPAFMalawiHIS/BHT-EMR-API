@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative 'boot'
+require_relative 'streaming_settings'
 
 require 'rails'
 # Pick the frameworks you want:
@@ -21,15 +22,19 @@ Bundler.require(*Rails.groups)
 
 module BHTEmrApi
   class Application < Rails::Application
+    config.before_configuration do
+      StreamingSettings.normalize_env!
+    end
+
     # Initialize configuration defaults for originally generated Rails version.
-    config.load_defaults 6.1
+    config.load_defaults 7.0
     config.eager_load_paths << Rails.root.join('lib')
     config.active_record.yaml_column_permitted_classes = [Date, Time]
     # Settings in config/environments/* take precedence over those specified here.
     # Application configuration can go into files in config/initializers
     # -- all .rb files in that directory are automatically loaded after loading
     # the framework and any gems in your application.
-
+    config.solid_queue.silence_polling = true
     # Only loads a smaller set of middleware suitable for API only apps.
     # Middleware like session, flash, cookies can be added back manually.
     # Skip views, helpers and assets when generating a new resource.
@@ -39,5 +44,7 @@ module BHTEmrApi
     config.time_zone = 'Africa/Blantyre' # Your local time zone
     config.active_record.default_timezone = :local
     config.active_record.time_zone_aware_attributes = false
+
+    config.solid_queue.use_skip_locked = false
   end
 end

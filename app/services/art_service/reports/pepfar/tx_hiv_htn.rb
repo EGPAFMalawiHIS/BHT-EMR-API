@@ -35,12 +35,12 @@ module ArtService
 
         def indicators
           {
-                tx_curr: [],
-                ever_diagnosed_htn: [],
-                screened_for_htn: [],
-                newly_diagnosed_htn: [],
-                controlled_htn: [],
-              }
+            tx_curr: [],
+            ever_diagnosed_htn: [],
+            screened_for_htn: [],
+            newly_diagnosed_htn: [],
+            controlled_htn: []
+          }
         end
 
         def init_report
@@ -51,29 +51,29 @@ module ArtService
           end
           process_aggreggation_rows
         end
-        def map_results(patients:)
 
+        def map_results(patients:)
           patients.each do |p|
             next if p['age_group'] == 'Unknown' || children_age_groups.include?(p['age_group'])
 
             id = p['patient_id']
-            diagonised = p["diagonised"]
-            date_diagnosed = p["date_diagnosed"]
-            systolic = p["systolic"]
-            diastolic = p["diastolic"]
-            controlled_htn = p["controlled_htn"]
-            maternal_status = p["maternal_status"]
-            gender = p["gender"]
-            age_group = p["age_group"]
+            diagonised = p['diagonised']
+            date_diagnosed = p['date_diagnosed']
+            systolic = p['systolic']
+            diastolic = p['diastolic']
+            controlled_htn = p['controlled_htn']
+            maternal_status = p['maternal_status']
+            gender = p['gender']
+            age_group = p['age_group']
 
             next if children_age_groups.include?(age_group)
 
             @report[age_group][gender][:tx_curr] << id
-            @report["All"][maternal_status][:tx_curr] << id
+            @report['All'][maternal_status][:tx_curr] << id
 
             if systolic && diastolic
               @report[age_group][gender][:screened_for_htn] << id
-              @report["All"][maternal_status][:screened_for_htn] << id
+              @report['All'][maternal_status][:screened_for_htn] << id
             end
 
             if diagonised == 1
@@ -83,23 +83,22 @@ module ArtService
 
             if diagonised == 1 && date_diagnosed && date_diagnosed > start_date
               @report[age_group][gender][:newly_diagnosed_htn] << id
-              @report["All"][maternal_status][:newly_diagnosed_htn] << id
+              @report['All'][maternal_status][:newly_diagnosed_htn] << id
             end
 
             next unless systolic && diastolic
 
             if controlled_htn == 1
               @report[age_group][gender][:controlled_htn] << id
-              @report["All"][maternal_status][:controlled_htn] << id
+              @report['All'][maternal_status][:controlled_htn] << id
             end
           end
-
         end
 
-        def process_aggreggation_rows     
-          @report["All"] = {}
+        def process_aggreggation_rows
+          @report['All'] = {}
           @report['All']['Male'] = indicators
-          
+
           %w[Male FP FNP FBf].each do |key|
             @report['All'][key] = indicators
           end
@@ -133,13 +132,13 @@ module ArtService
               INNER JOIN obs systolic
                 ON systolic.encounter_id = vitals.encounter_id
                 AND systolic.voided = 0
-                AND systolic.concept_id = #{concept("Systolic blood pressure").id}
+                AND systolic.concept_id = #{concept('Systolic blood pressure').id}
               INNER JOIN obs diastolic
                 ON diastolic.encounter_id = vitals.encounter_id
                 AND diastolic.voided = 0
-                AND diastolic.concept_id = #{concept("Diastolic blood pressure").id}
+                AND diastolic.concept_id = #{concept('Diastolic blood pressure').id}
               WHERE vitals.voided = 0
-                AND vitals.encounter_type = #{encounter_type("VITALS").id}
+                AND vitals.encounter_type = #{encounter_type('VITALS').id}
                 AND DATE(vitals.encounter_datetime) >= #{ActiveRecord::Base.connection.quote(start_date)}
                 AND DATE(vitals.encounter_datetime) <= #{ActiveRecord::Base.connection.quote(end_date)}
               GROUP BY vitals.patient_id
@@ -149,23 +148,23 @@ module ArtService
               FROM patient p
               INNER JOIN encounter e ON e.patient_id = p.patient_id
                 AND e.voided = 0
-                AND e.encounter_type = #{encounter_type("HIV CLINIC CONSULTATION").id}
+                AND e.encounter_type = #{encounter_type('HIV CLINIC CONSULTATION').id}
                 AND DATE(e.encounter_datetime) <= #{ActiveRecord::Base.connection.quote(end_date)}
               INNER JOIN obs date_diagnosied ON date_diagnosied.encounter_id = e.encounter_id
                 AND date_diagnosied.voided = 0
-                AND date_diagnosied.concept_id = #{concept("Hypertension diagnosis date").id}
+                AND date_diagnosied.concept_id = #{concept('Hypertension diagnosis date').id}
             ) diagnosed ON diagnosed.patient_id = tesd.patient_id
             LEFT JOIN (
               SELECT e.patient_id
               FROM encounter e
               INNER JOIN obs o ON o.encounter_id = e.encounter_id AND o.voided = 0
               WHERE e.voided = 0
-                AND e.encounter_type = #{encounter_type("VITALS").id}
+                AND e.encounter_type = #{encounter_type('VITALS').id}
                 AND DATE(e.encounter_datetime) >= #{ActiveRecord::Base.connection.quote(start_date)}
                 AND DATE(e.encounter_datetime) <= #{ActiveRecord::Base.connection.quote(end_date)}
-                AND ((o.concept_id = #{concept("Systolic blood pressure").id}
+                AND ((o.concept_id = #{concept('Systolic blood pressure').id}
                 AND o.value_numeric < #{SYSTOLIC_THRESHOLD})
-                OR (o.concept_id = #{concept("Diastolic blood pressure").id}
+                OR (o.concept_id = #{concept('Diastolic blood pressure').id}
                 AND o.value_numeric < #{DIASTOLIC_THRESHOLD}))
             ) controlled ON controlled.patient_id = diagnosed.patient_id
               AND diagnosed.patient_id IS NOT NULL

@@ -30,7 +30,6 @@ module ArtService
           lts_visits = patient_latest_visits(diagnosed_with_htn.map { |p| p['patient_id'] })&.to_a
 
           diagnosed_with_htn.each do |p|
-
             patient_id = p['patient_id']
 
             patient = p.merge(lts_visits&.find { |a| a['patient_id'] == patient_id } || {})
@@ -50,7 +49,7 @@ module ArtService
         def process_enrollement_data(patient, period)
           key = :htn_enrollment
           patient_id = patient['patient_id']
-          date_diagonised = patient.fetch('date_diagonised', nil)&.to_date
+          patient.fetch('date_diagonised', nil)&.to_date
           lts_visit_date = patient.fetch('lts_visit_date', nil)&.to_date
           lts_systolic = patient.fetch('lts_systolic', nil)&.to_i
           lts_diastolic = patient.fetch('lts_diastolic', nil)&.to_i
@@ -58,22 +57,17 @@ module ArtService
 
           report[key][:registered_with_hypertension][period] << patient_id
 
-          
-          if moh_cum_outcome === 'on antiretrovirals'
-            report[key][:enrolled_and_active_in_care][period] << patient_id
-          end
-          
+          report[key][:enrolled_and_active_in_care][period] << patient_id if moh_cum_outcome === 'on antiretrovirals'
+
           if moh_cum_outcome === 'defaulted'
             report[key][:who_have_defaulted_during_the_reporting_period][period] << patient_id
           end
-          
+
           report[key][:who_have_died][period] << patient_id if moh_cum_outcome === 'patient died'
           report[key][:who_have_transferred_out][period] << patient_id if moh_cum_outcome === 'patient transferred out'
           report[key][:who_have_stopped_htn_care][period] << patient_id if moh_cum_outcome === 'treatment stopped'
-                    
-          if lts_visit_date.present?
-            report[key][:with_a_visit_in_last_3_months][period] << patient_id
-          end
+
+          report[key][:with_a_visit_in_last_3_months][period] << patient_id if lts_visit_date.present?
 
           if lts_visit_date.present? && lts_systolic.present? && lts_diastolic.present?
             report[key][:with_a_visit_in_last_3_months_who_have_a_bp_measurement_recorded][period] << patient_id
@@ -94,10 +88,12 @@ module ArtService
             next if report[key][category][period].include?(patient_id)
 
             report[key][category][period] << patient_id if drugs_list.any? { |d| drugs.include?(d) }
-            
+
             return if report[key][:others][period].include?(patient_id)
-            
-            report[key][:others][period] << patient_id if drugs.length > 0 && drugs.all? { |d| !drugs_list.include?(d) }
+
+            report[key][:others][period] << patient_id if drugs.length.positive? && drugs.all? do |d|
+              !drugs_list.include?(d)
+            end
           end
         end
 
@@ -185,7 +181,7 @@ module ArtService
               lts_systolic.value_numeric AS lts_systolic,
               lts_diastolic.value_numeric AS lts_diastolic,
               DATE(e.encounter_datetime) AS lts_visit_date
-            FROM encounter e 
+            FROM encounter e#{' '}
             LEFT JOIN obs lts_systolic ON lts_systolic.voided = 0
               AND lts_systolic.person_id = e.patient_id
               AND lts_systolic.concept_id = #{concept('Systolic blood pressure').id}

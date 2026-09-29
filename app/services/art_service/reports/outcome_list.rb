@@ -104,7 +104,7 @@ module ArtService
           INNER JOIN program_workflow_state ws ON ws.program_workflow_state_id = s2.state
           INNER JOIN program_workflow w ON w.program_workflow_id = ws.program_workflow_id
           INNER JOIN concept_name n2 ON n2.concept_id = ws.concept_id
-          WHERE o.#{report_type&.downcase == 'pepfar' ? 'pepfar_' : 'moh_' }cum_outcome = '#{outcome_state}'
+          WHERE o.#{report_type&.downcase == 'pepfar' ? 'pepfar_' : 'moh_'}cum_outcome = '#{outcome_state}'
             AND ppo.voided = 0
             AND s2.voided = 0
             AND s2.start_date
@@ -130,8 +130,8 @@ module ArtService
             village: person['village'],
             current_age: person['age'],
             identifier: person['identifier'],
-            transferred_out_to: (person['transferred_out_to'] || 'N/A'),
-            outcome_date: (person['outcome_date']&.to_date || 'N/A')
+            transferred_out_to: person['transferred_out_to'] || 'N/A',
+            outcome_date: person['outcome_date']&.to_date || 'N/A'
           }
         end
 

@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 ## TODO: add text processing logic to escape characters outside of [A-Za-z0-9], consider :, \", (, ), \,
 ## TODO: add text processing logic to escape apostrophes
 ## TODO: maintain current x and current y throughout a label process
@@ -32,7 +34,7 @@ module ZebraPrinter # :nodoc:
         @font_horizontal_multiplier = 1
         @font_vertical_multiplier = 1
         @font_reverse = false
-        @output = ''
+        @output = String.new
         header
       end
 
@@ -181,7 +183,7 @@ module ZebraPrinter # :nodoc:
       def draw_text(data, x, y, r = 0, font_selection = 1, horizontal_multiplier = 1, vertical_multiplier = 1,
                     reverse = false)
         data = begin
-        data.gsub("'", "\\\\'")
+          data.gsub("'", "\\\\'")
         rescue StandardError
           data
         end
@@ -284,11 +286,11 @@ module ZebraPrinter # :nodoc:
         [char_width * horizontal_multiplier, char_height * vertical_multiplier]
       end
 
-    def get_word_size(char_width, word, need_space)
-    # Count actual visible characters, ignoring escape sequences
-    visible_length = word.gsub(/\\\\[\'"]/, '_').size
-    (char_width * (visible_length + (need_space ? 1 : 0))).to_i
-    end
+      def get_word_size(char_width, word, need_space)
+        # Count actual visible characters, ignoring escape sequences
+        visible_length = word.gsub(/\\\\['"]/, '_').size
+        (char_width * (visible_length + (need_space ? 1 : 0))).to_i
+      end
     end
 
     class StandardLabel < Label

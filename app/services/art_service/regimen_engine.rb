@@ -207,7 +207,7 @@ module ArtService
     def ingredient_to_drug(ingredient)
       drug = ingredient.drug
       regimen_category_lookup = MohRegimenLookup.find_by(drug_inventory_id: ingredient.drug_inventory_id)
-      regimen_category = regimen_category_lookup ? regimen_category_lookup.regimen_name[-1] : nil
+      regimen_category = regimen_category_lookup&.regimen_name&.[](-1)
       frequency_check = ingredient.course == '3HP' && ingredient.drug.concept.fullname != 'Pyridoxine'
       frequency = frequency_check ? 'Weekly (QW)' : 'Daily (QOD)'
       {
@@ -265,11 +265,11 @@ module ArtService
       tb_treatment_start_date_concept_id = ConceptName.where(name: 'TB treatment start date').collect(&:concept_id)
       tb_treatment_period_concept_id = ConceptName.where(name: 'TB treatment period').collect(&:concept_id)
       tb_treatment_period = Observation.where(person_id: patient.id,
-                                             concept_id: tb_treatment_period_concept_id)&.first
+                                              concept_id: tb_treatment_period_concept_id)&.first
       tb_treatment_start_date = Observation.where(person_id: patient.id,
-                                                concept_id: tb_treatment_start_date_concept_id)&.first
+                                                  concept_id: tb_treatment_start_date_concept_id)&.first
       return false unless tb_treatment_period && tb_treatment_start_date
-      
+
       treatment_end_date = tb_treatment_start_date.value_datetime + tb_treatment_period.value_numeric.to_i.months
 
       (treatment_end_date + 14.days).to_date >= date.to_date
@@ -386,7 +386,7 @@ module ArtService
         regimen = regimens[regimen_name]
         next unless regimen
 
-        if ['13A', '15P'].include?(regimen_name)
+        if %w[13A 15P].include?(regimen_name)
           inject_dtg_into_regimen!(regimen, patient_weight)
         else
           double_dose_dtg_in_regimen!(regimen)

@@ -5,7 +5,6 @@ module ArtService
     module Clinic
       # Generates a lab audit trail report for a clinic
       class LabAuditTrailReport
-        
         def initialize(start_date:, end_date:, **_kwargs)
           @start_date = ActiveRecord::Base.connection.quote(start_date)
           @end_date = ActiveRecord::Base.connection.quote(end_date)

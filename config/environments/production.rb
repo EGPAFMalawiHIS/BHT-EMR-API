@@ -6,6 +6,9 @@ Rails.application.configure do
   # Code is not reloaded between requests.
   config.cache_classes = false
 
+
+  config.active_support.to_time_preserves_timezone = :zone
+
   # Eager load code on boot. This eager loads most of Rails and
   # your application in memory, allowing both threaded web servers
   # and those relying on copy on write to perform better.
@@ -52,8 +55,15 @@ Rails.application.configure do
   # Use a different cache store in production.
   # config.cache_store = :mem_cache_store
 
-  # Use a real queuing backend for Active Job (and separate queues per environment)
-  # config.active_job.queue_adapter     = :resque
+  # Use a real queuing backend for Active Job (and separate queues per environment).
+  # Streaming is an optional feature — only require the SolidQueue-backed queue
+  # database when a site has explicitly opted in via ENABLE_STREAMING=true, so
+  # sites that don't use streaming don't need a `queue` entry in database.yml.
+  if StreamingSettings.enabled?
+    config.active_job.queue_adapter = :solid_queue
+    config.solid_queue.connects_to = { database: { writing: :queue } }
+  end
+
   # config.active_job.queue_name_prefix = "BHT-EMR-API_#{Rails.env}"
 
   config.action_mailer.perform_caching = false

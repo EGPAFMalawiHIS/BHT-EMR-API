@@ -40,7 +40,7 @@ class AddDtgToRegimen12A < ActiveRecord::Migration[5.2]
                                               dose_id: 6,
                                               min_weight: 30,
                                               max_weight: 300
-                                              # gender: 'MF'
+    # gender: 'MF'
     ingredient&.delete
   end
 end

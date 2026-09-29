@@ -104,7 +104,7 @@ module Api
       end
 
       def cohort_survival_analysis
-        quarter, age_group, reg= params.require %i[quarter age_group regenerate]
+        quarter, age_group, reg = params.require %i[quarter age_group regenerate]
         occupation = params[:occupation]
         dsd = params[:dsd]
         reg = (reg == 'true')
@@ -187,7 +187,8 @@ module Api
       end
 
       def moh_tpt
-        render json: service.moh_tpt(params[:start_date], params[:end_date], occupation: params[:occupation], dsd: params[:dsd])
+        render json: service.moh_tpt(params[:start_date], params[:end_date], occupation: params[:occupation],
+                                                                             dsd: params[:dsd])
       end
 
       def ipt_coverage
@@ -222,7 +223,8 @@ module Api
       end
 
       def clients_due_vl
-        render json: service.clients_due_vl(params[:start_date], params[:end_date], occupation: params[:occupation], dsd: params[:dsd])
+        render json: service.clients_due_vl(params[:start_date], params[:end_date], occupation: params[:occupation],
+                                                                                    dsd: params[:dsd])
       end
 
       def vl_results
@@ -234,7 +236,8 @@ module Api
       end
 
       def lab_test_results
-        render json: service.lab_test_results(params[:start_date], params[:end_date], occupation: params[:occupation], dsd: params[:dsd])
+        render json: service.lab_test_results(params[:start_date], params[:end_date], occupation: params[:occupation],
+                                                                                      dsd: params[:dsd])
       end
 
       def orders_made
