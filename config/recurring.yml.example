@@ -14,6 +14,11 @@ default: &default
     queue: finished
     schedule: at 1am every day
     priority: 10
+  replay_pending_streams:
+    class: ReplayPendingStreamsJob
+    queue: streaming
+    schedule: every 5 minutes
+    priority: 5
 
 development: 
   <<: *default

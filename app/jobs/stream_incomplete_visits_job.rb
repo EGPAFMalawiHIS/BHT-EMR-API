@@ -2,21 +2,28 @@
 
 class StreamIncompleteVisitsJob < ApplicationJob
   self.queue_adapter = :solid_queue
-  
+
+  PROGRAM_ID = 1 # TODO: make this dynamic for all programs
+
   def perform
-    date = (Date.today - 1)
-    visits = program_incomplete_visits(date:)
+    date = Date.today - 1
+    patient_ids = program_incomplete_visits(date:)
+    return if patient_ids.blank?
+
+    # Ledger rows are written on the primary connection; only the job enqueue
+    # needs the queue database.
+    patient_ids.each do |patient_id|
+      StreamingLedgerService.find_or_create!(patient_id:, program_id: PROGRAM_ID, stream_date: date)
+    end
 
     begin
-      # connect to solid queue db
-      # then start the job
       ActiveRecord::Base.establish_connection(:queue)
 
-      visits.each do |patient_id|
+      patient_ids.each do |patient_id|
         StreamingJob.perform_later(
           patient_id:,
-          program_id:,
-          date: date.strtotime('%Y-%m-%d')
+          program_id: PROGRAM_ID,
+          date: date.strftime('%Y-%m-%d')
         )
       end
     ensure
@@ -24,7 +31,6 @@ class StreamIncompleteVisitsJob < ApplicationJob
     end
   end
 
-  # TODO: make this dynamic for all programs
   def program_incomplete_visits(date:)
     ArtService::DataCleaningTool.new(
       start_date: date.beginning_of_day,
