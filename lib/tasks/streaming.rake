@@ -135,6 +135,12 @@ namespace :streaming do
 
     jobs_enqueued = 0
 
+    results.each do |patient_id, details|
+      details[:dates].each do |date|
+        StreamingLedgerService.find_or_create!(patient_id: patient_id, program_id: 1, stream_date: date.to_date)
+      end
+    end
+
     begin
       ActiveRecord::Base.establish_connection(:queue)
 
