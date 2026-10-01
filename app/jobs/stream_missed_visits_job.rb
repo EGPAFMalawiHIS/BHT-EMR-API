@@ -9,10 +9,6 @@ class StreamMissedVisitsJob < ApplicationJob
 
     missed_patients = queued_visits - todays_visits
 
-    missed_patients.each do |patient_id|
-      StreamingLedgerService.find_or_create!(patient_id:, program_id: @program_id, stream_date: @date)
-    end
-
     begin
       ActiveRecord::Base.establish_connection(:queue)
 
