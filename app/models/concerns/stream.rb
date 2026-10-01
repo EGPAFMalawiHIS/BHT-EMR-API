@@ -8,17 +8,30 @@ module Stream
   end
 
   def stream
-    if eligible_for_streaming?
-      StreamingJob.set(wait: stream_wait_time.seconds)
-                  .perform_later(
-                    patient_id: get_patient_id,
-                    program_id: get_program_id,
-                    date: get_date
-                  )
-    end
+    return unless eligible_for_streaming?
+
+    ledger = StreamingLedgerService.find_or_create!(
+      patient_id: get_patient_id,
+      program_id: get_program_id,
+      stream_date: get_date.to_date
+    )
+
+    # A row serving a backoff window, or reserved by the scheduled drain, will
+    # be picked up automatically. Enqueueing here would only bypass the delay.
+    # The later send rebuilds the payload, so it still includes this write.
+    return if StreamingLedgerService.deferred?(ledger)
+
+    StreamingJob.set(wait: stream_wait_time.seconds)
+                .perform_later(
+                  patient_id: get_patient_id,
+                  program_id: get_program_id,
+                  date: get_date
+                )
   rescue StandardError => e
-    Rails.logger.error("Error streaming: #{e.message}")
-    raise e
+    # Deliberately not re-raised: the clinical record is already committed, so
+    # failing here would return an error for a write that succeeded. The ledger
+    # row is the durable record and the scheduled drain will retry it.
+    Rails.logger.error("Error streaming patient=#{get_patient_id} date=#{get_date}: #{e.message}")
   end
 
   def lab_encounter?
