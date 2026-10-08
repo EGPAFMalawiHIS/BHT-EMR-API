@@ -2,7 +2,7 @@ namespace :gender do
   GENDER_FIXES = { 'Male' => 'M', 'Female' => 'F' }.freeze
 
   desc 'Resolves people saved with gender Male/Female (NID integration) to M/F'
-  task fix_long_form: :environment do
+  task repair_format: :environment do
     dry_run = ENV['DRY_RUN']&.downcase == 'true'
 
     puts dry_run ? '=== DRY RUN MODE (no changes will be saved) ===' : '=== LIVE MODE ==='
