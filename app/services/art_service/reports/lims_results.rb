@@ -36,7 +36,10 @@ module ArtService
           LEFT JOIN patient_identifier pi ON pi.patient_id = e.patient_id AND pi.voided = 0 AND pi.identifier_type = #{identifier_type}
           LEFT JOIN obs ON obs.person_id = e.patient_id AND obs.voided = 0 AND obs.order_id = o.order_id
             AND obs.concept_id = 7363 -- 'Lab test result'
-          LEFT JOIN obs statuses ON statuses.order_id = o.order_id AND statuses.voided = 0 AND statuses.concept_id = 10682 -- 'lab order status'
+          LEFT JOIN obs statuses ON statuses.obs_id = ( -- latest 'lab order status'; earlier ones stay active as the order's trail
+            SELECT s.obs_id FROM obs s WHERE s.order_id = o.order_id AND s.voided = 0 AND s.concept_id = 10682
+            ORDER BY s.obs_datetime DESC, s.obs_id DESC LIMIT 1
+          )
           LEFT JOIN obs res ON res.obs_group_id = obs.obs_id AND res.voided = 0 AND res.order_id = o.order_id
           LEFT JOIN obs reason ON reason.order_id = o.order_id AND reason.voided = 0  AND reason.concept_id = 2429 -- 'Reason for test'
           LEFT JOIN concept_name reason_test ON reason_test.concept_id = reason.value_coded AND reason_test.voided = 0
