@@ -54,7 +54,7 @@ gem 'his_emr_api_lab', '= 2.5.0'
 gem 'parallel', '~> 1.20.1'
 
 # json 3.x dropped the quirks_mode option that ActiveSupport 7.0 still passes
-gem 'json', '< 3'
+# gem 'json', '< 3'
 
 gem "audited"
 
