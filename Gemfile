@@ -48,10 +48,13 @@ gem 'rswag-ui'
 gem 'emr_ohsp_interface', '~> 2.2.5'
 
 
-gem 'his_emr_api_lab', '= 2.4.9'
+gem 'his_emr_api_lab', '= 2.5.0'
 # gem 'his_emr_api_radiology', '~> 1.0.9'
 
 gem 'parallel', '~> 1.20.1'
+
+# json 3.x dropped the quirks_mode option that ActiveSupport 7.0 still passes
+gem 'json', '< 3'
 
 gem "audited"
 
