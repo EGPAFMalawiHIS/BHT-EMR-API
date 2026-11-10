@@ -20,7 +20,7 @@ module ArtService
 
       def data
         ActiveRecord::Base.connection.select_all <<~SQL
-          SELECT
+          SELECT DISTINCT
             o.person_id AS patient_id,
             pn.given_name,
             pn.family_name,
